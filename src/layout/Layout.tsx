@@ -6,9 +6,8 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import SidebarComponent from './sidebar/Sidebar';
-import Breadcrumbs from './breacrumbs/Breadcrumbs';
+import Breadcrumbs from '../layout/breacrumbs/Breadcrumbs';
 import { Separator } from '@/components/ui/separator';
-import Logos from '@/components/Logos';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAuthStore } from '@/store/auth/useAuthStore';
@@ -125,18 +124,18 @@ export default function Layout({ children }: Props) {
             )}
 
             <Separator orientation='vertical' className='h-4 bg-white/50' />
-            <Breadcrumbs />
+            <Breadcrumbs items={[]} />
           </div>
 
           {/* Logos centrados pero dentro del flujo */}
           <div className='flex flex-1 items-center justify-center px-4'>
-            <Logos className='hidden scale-[0.8] sm:flex md:scale-[0.95] lg:scale-100 xl:scale-[1.1]' />
+            <h1>Mantenimiento</h1>
           </div>
         </header>
 
         {/* Contenido principal */}
         <main className='flex-1 overflow-auto p-4'>{children}</main>
-        <Toaster duration={3500} pauseWhenPageIsHidden richColors />
+        <Toaster duration={3500} />
       </SidebarInset>
     </SidebarProvider>
   );
