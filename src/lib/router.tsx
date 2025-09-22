@@ -1,7 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import HomePage from '../pages/HomePage';
 import NotFoundPage from '../pages/NotFoundPage';
-import { Layout } from 'lucide-react';
+import Layout from '@/layout/Layout';
 
 const router = createBrowserRouter([
   {

@@ -22,6 +22,7 @@ type ModuleItemProps = {
 
 export default function ModuleItem({ module }: ModuleItemProps) {
   const permissions = useAuthStore((state) => state.permissions);
+  console.log('>>> ModuleItem permissions:', permissions);
 
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -91,6 +92,7 @@ export default function ModuleItem({ module }: ModuleItemProps) {
                     to={`${module.url}${item.url}`}
                     className={cn(
                       'group relative',
+
                       (!permissions.find(
                         (p) =>
                           p.nombreModulo === item.permission?.nombreModulo &&

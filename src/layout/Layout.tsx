@@ -6,15 +6,23 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import SidebarComponent from './sidebar/Sidebar';
-import Breadcrumbs from '../layout/breacrumbs/Breadcrumbs';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { Separator } from '@/components/ui/separator';
+
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAuthStore } from '@/store/auth/useAuthStore';
 import Loading from '@/components/Loading';
 import { useSidebarStore } from '@/store/sidebar/sidebarStore';
 import { Toaster } from 'sonner';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 type Props = PropsWithChildren;
 
@@ -45,12 +53,7 @@ export default function Layout({ children }: Props) {
   });
 
   const cookieUser = useAuthStore((state) => state.cookieUser);
-
-  useEffect(() => {
-    if (cookieUser) {
-      console.log('ID Usuario desde store:', cookieUser.idUsuario);
-    }
-  }, [cookieUser]);
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (legacyUser) return;
@@ -89,6 +92,9 @@ export default function Layout({ children }: Props) {
 
   if (isPendingLogin || isPendingPermissions) return <Loading />;
 
+  // Breadcrumb dinámico con los UI components
+  const parts = pathname.split('/').filter(Boolean);
+
   return (
     <SidebarProvider
       open={open}
@@ -101,16 +107,16 @@ export default function Layout({ children }: Props) {
       {/* Contenedor principal */}
       <SidebarInset className='flex w-full max-w-full flex-1 flex-col overflow-x-hidden'>
         {/* Header fijo */}
-        <header className='relative flex h-[64px] items-center border-b bg-blue-800 px-4 py-2 text-white shadow-sm'>
+        <header className='relative flex h-[64px] items-center border-b bg-primary px-4 py-2 text-primary-foreground shadow-sm'>
           {/* Botón Sidebar y Breadcrumbs */}
           <div className='flex items-center gap-2'>
-            <SidebarTrigger className='text-white' />
+            <SidebarTrigger className='text-primary-foreground' />
 
-            {/* Texto "Intranet" visible solo cuando el sidebar está cerrado */}
+            {/* Texto/logo cuando sidebar está cerrado */}
             {!open && (
               <Link
                 to='/'
-                className='flex items-center gap-1 text-lg font-semibold text-white transition-opacity duration-300'
+                className='flex items-center gap-1 text-lg font-semibold text-primary-foreground transition-opacity duration-300'
               >
                 <img
                   src='/assets/logos/logo-white.svg'
@@ -123,19 +129,59 @@ export default function Layout({ children }: Props) {
               </Link>
             )}
 
-            <Separator orientation='vertical' className='h-4 bg-white/50' />
-            <Breadcrumbs items={[]} />
+            <Separator
+              orientation='vertical'
+              className='h-4 bg-primary-foreground/50'
+            />
+
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink className='hover:underline' href='/'>
+                    Inicio
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                {parts.map((part, idx) => (
+                  <span key={idx} className='flex items-center'>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      {idx === parts.length - 1 ? (
+                        <BreadcrumbPage>{part}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink
+                          href={`/${parts.slice(0, idx + 1).join('/')}`}
+                        >
+                          {part}
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </span>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
 
-          {/* Logos centrados pero dentro del flujo */}
+          {/* Logos centrados */}
           <div className='flex flex-1 items-center justify-center px-4'>
-            <h1>Mantenimiento</h1>
+            <h1 className='hidden scale-[0.8] sm:flex md:scale-[0.95] lg:scale-100 xl:scale-[1.1]'>
+              Mantenimiento
+            </h1>
           </div>
+
+          {/* Usuario a la derecha */}
+          {cookieUser && (
+            <div className='ml-auto text-right text-sm'>
+              <div className='font-semibold'>{cookieUser.usuario}</div>
+              <div className='text-xs opacity-80'>
+                ID: {cookieUser.idUsuario}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Contenido principal */}
         <main className='flex-1 overflow-auto p-4'>{children}</main>
-        <Toaster duration={3500} />
+        <Toaster duration={3500} richColors />
       </SidebarInset>
     </SidebarProvider>
   );

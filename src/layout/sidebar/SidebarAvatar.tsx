@@ -7,9 +7,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuItem, SidebarMenuSubButton } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth/useAuthStore';
-import { UserCircleIcon, Bell } from 'lucide-react';
+import { UserCircleIcon, Bell, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function SidebarAvatar() {
@@ -49,10 +49,6 @@ export default function SidebarAvatar() {
           <DropdownMenuLabel className='p-0 font-normal'>
             <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
               <Avatar className='h-8 w-8 rounded-lg'>
-                <AvatarImage
-                  src={`https://intranet.rbu.cl/fotos/${cookieUser?.usuario}.jpg`}
-                  alt={cookieUser?.usuario}
-                />
                 <AvatarFallback className='rounded-lg'>
                   {legacyUser?.nombreCompleto?.split(' ')[0]?.slice(0, 2) ??
                     '00'}
@@ -88,8 +84,15 @@ export default function SidebarAvatar() {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem className='p-0 text-destructive'>
-            {/* <LogoutButton className='flex w-full items-center gap-2 px-2 py-1.5 text-sm' /> */}
+          <DropdownMenuItem
+            onClick={() => {
+              // dispara el logout de tu store
+              useAuthStore.getState().logout();
+            }}
+            className='flex cursor-pointer items-center gap-2 text-destructive'
+          >
+            <LogOut className='size-4' />
+            Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
