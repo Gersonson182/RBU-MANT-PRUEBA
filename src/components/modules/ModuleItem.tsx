@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import type { ModuleItem as ModuleItemType } from '../../constants';
+import type { ModuleItem as ModuleItemType, MenuItem } from '../../constants';
 import { Card, CardContent } from '../ui/card';
 import clsx from 'clsx';
 
@@ -11,9 +11,8 @@ import {
 } from '../ui/primary-sheet';
 
 import { ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '../../lib/utils';
-
 import { useAuthStore } from '../../store/auth/useAuthStore';
 
 type ModuleItemProps = {
@@ -22,10 +21,20 @@ type ModuleItemProps = {
 
 export default function ModuleItem({ module }: ModuleItemProps) {
   const permissions = useAuthStore((state) => state.permissions);
-  console.log('>>> ModuleItem permissions:', permissions);
-
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+
+  const hasPermission = (item: MenuItem) =>
+    !item.permission ||
+    permissions.some(
+      (p) =>
+        p.nombreModulo === item.permission?.nombreModulo &&
+        p.nombreAcceso === item.permission?.nombreAcceso,
+    );
+
+  useEffect(() => {
+    console.log('Permisos del usuario:', permissions);
+  }, [permissions]);
 
   return (
     <>
@@ -34,9 +43,7 @@ export default function ModuleItem({ module }: ModuleItemProps) {
           'rounded-2xl hover:shadow-sm hover:shadow-primary/30',
           isOpen && 'bg-primary-50',
         )}
-        onClick={() => {
-          navigate(module.url);
-        }}
+        onClick={() => navigate(module.url)}
       >
         <CardContent>
           <div className='flex flex-col items-center justify-between gap-4 pt-6'>
@@ -78,7 +85,7 @@ export default function ModuleItem({ module }: ModuleItemProps) {
           </PrimarySheetHeader>
 
           <div className='flex flex-1 flex-col gap-4 overflow-y-auto border-t pt-8'>
-            {module.menu.map((item) => (
+            {module.items.map((item) => (
               <div key={item.name} className='space-y-1'>
                 <div className='flex items-center gap-2'>
                   {item.imageUrl && (
@@ -89,17 +96,10 @@ export default function ModuleItem({ module }: ModuleItemProps) {
                     />
                   )}
                   <Link
-                    to={`${module.url}${item.url}`}
+                    to={item.url}
                     className={cn(
                       'group relative',
-
-                      (!permissions.find(
-                        (p) =>
-                          p.nombreModulo === item.permission?.nombreModulo &&
-                          p.nombreAcceso === item.permission?.nombreAcceso,
-                      ) ||
-                        !item.permission) &&
-                        'pointer-events-none opacity-50',
+                      !hasPermission(item) && 'pointer-events-none opacity-50',
                     )}
                   >
                     {item.name}
@@ -107,9 +107,10 @@ export default function ModuleItem({ module }: ModuleItemProps) {
                   </Link>
                 </div>
 
-                {Array.isArray(item.submenu) && item.submenu.length > 0 && (
+                {/* Renderizar children (submenú) si existen */}
+                {Array.isArray(item.children) && item.children.length > 0 && (
                   <ul className='ml-4 list-disc text-sm text-neutral-200'>
-                    {item.submenu.map((sub) => (
+                    {item.children.map((sub) => (
                       <li key={sub.name} className='flex items-center gap-2'>
                         {sub.imageUrl && (
                           <img
@@ -119,16 +120,10 @@ export default function ModuleItem({ module }: ModuleItemProps) {
                           />
                         )}
                         <Link
-                          to={`${module.url}${sub.url}`}
+                          to={sub.url}
                           className={cn(
                             'hover:underline',
-                            (!permissions.find(
-                              (p) =>
-                                p.nombreModulo ===
-                                  sub.permission?.nombreModulo &&
-                                p.nombreAcceso === sub.permission?.nombreAcceso,
-                            ) ||
-                              !sub.permission) &&
+                            !hasPermission(sub) &&
                               'pointer-events-none opacity-50',
                           )}
                         >

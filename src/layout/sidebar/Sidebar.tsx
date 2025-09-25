@@ -60,7 +60,7 @@ export default function SidebarComponent(
       className='bg-sidebar-background border-r border-sidebar-border text-sidebar-foreground'
     >
       {/* Logo en el header */}
-      <SidebarHeader className='bg-sidebar-background border-b border-sidebar-border text-sidebar-foreground'>
+      <SidebarHeader className='border-b border-sidebar-border bg-fuchsia-950 text-sidebar-foreground'>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size='lg' asChild>
@@ -73,7 +73,7 @@ export default function SidebarComponent(
                 }}
               >
                 <img
-                  src='/assets/logos/logo-white.svg'
+                  src='/assets/modules/RBU-MANT.png'
                   alt='Mant. Logo'
                   className={cn(
                     'w-1/2 transition-all duration-500 ease-in-out',

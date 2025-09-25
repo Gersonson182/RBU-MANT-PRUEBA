@@ -76,14 +76,12 @@ export default function SidebarLink({ item }: Props) {
           <CollapsibleContent>
             <SidebarMenuSub>
               {item.items.map((sub) => {
-                const isSubActive = pathname.startsWith(
-                  `${item.url}${sub.url}`,
-                );
+                const isSubActive = pathname.startsWith(sub.url);
 
                 return (
                   <SidebarMenuSubItem key={sub.title}>
                     <SidebarMenuSubButton isActive={isSubActive} asChild>
-                      <Link to={`${item.url}${sub.url}`}>{sub.title}</Link>
+                      <Link to={sub.url}>{sub.title}</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 );

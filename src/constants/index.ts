@@ -6,30 +6,37 @@ export type MenuItem = {
   permission?: Permission;
   imageUrl?: string;
   imageUrlActive?: string;
-  submenu?: MenuItem[];
+  children?: MenuItem[];
 };
 
 export type ModuleItem = {
   name: string;
-  url: string;
   imageUrl: string;
   imageUrlActive?: string;
-  menu: MenuItem[];
-  submenu?: MenuItem[];
+  url: string;
+  items: MenuItem[]; // unificar menu + submenu
 };
 
 export const MODULES: ModuleItem[] = [
   {
-    name: 'Órdenes de trabajo',
-    url: '/ordenes-de-trabajo-menus',
-    imageUrl: '/images/icons/ordenes-de-trabajo.svg',
-    imageUrlActive: '/images/icons/ordenes-de-trabajo-active.svg',
-    menu: [
+    name: 'OT - Menu Principal',
+    url: '/OTMenu',
+    imageUrl: '/assets/modules/OT.png',
+    imageUrlActive: '/assets/modules/OT.png',
+    items: [
       {
-        name: 'Órdenes de Trabajo - Menu',
-        url: '/ordenes-de-trabajo',
+        name: 'Órdenes de Trabajo',
+        url: '/OrdenDeTrabajo',
         permission: {
-          nombreModulo: 'Ordenes de Trabajo - Menu',
+          nombreModulo: 'Ordenes de Trabajo - OT',
+          nombreAcceso: 'Acceso',
+        },
+      },
+      {
+        name: 'Control de Calidad',
+        url: '/control-calidad',
+        permission: {
+          nombreModulo: 'Órdenes de Trabajo - Control de Calidad',
           nombreAcceso: 'Acceso',
         },
       },
