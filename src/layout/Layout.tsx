@@ -119,7 +119,7 @@ export default function Layout({ children }: Props) {
                 className='flex items-center gap-1 text-lg font-semibold text-primary-foreground transition-opacity duration-300'
               >
                 <img
-                  src='/assets/logos/logo-white.svg'
+                  src='/assets/modules/MANT-RBU.svg'
                   className='h-10'
                   onClick={(e) => {
                     e.preventDefault();
@@ -171,9 +171,12 @@ export default function Layout({ children }: Props) {
           {/* Usuario a la derecha */}
           {cookieUser && (
             <div className='ml-auto text-right text-sm'>
-              <div className='font-semibold'>{cookieUser.usuario}</div>
-              <div className='text-xs opacity-80'>
-                ID: {cookieUser.idUsuario}
+              <div className='font-semibold'>
+                {' '}
+                {legacyUser?.primernombre + ' ' + legacyUser?.apellido}
+              </div>
+              <div className='text-xs font-bold opacity-80'>
+                Rut: {cookieUser.usuario}
               </div>
             </div>
           )}

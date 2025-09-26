@@ -12,7 +12,7 @@ export const useOTMenu = () => {
   const getAllFiltros = async (): Promise<DataFiltrosMant | null> => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/ordenes-trabajo/filtros`,
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/filtros`,
       );
 
       if (!response.ok) {
@@ -34,7 +34,7 @@ export const useOTMenu = () => {
   ): Promise<DataFiltrosMant[K]> => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/ordenes-trabajo/filtros?tipo=${tipo}`,
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/filtros?tipo=${tipo}`,
       );
 
       if (!response.ok) {

@@ -26,7 +26,7 @@ export const MODULES: ModuleItem[] = [
     items: [
       {
         name: 'Órdenes de Trabajo',
-        url: '/OrdenDeTrabajo',
+        url: '/OTMenu/OrdenDeTrabajo',
         permission: {
           nombreModulo: 'Ordenes de Trabajo - OT',
           nombreAcceso: 'Acceso',

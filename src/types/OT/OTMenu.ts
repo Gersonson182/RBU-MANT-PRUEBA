@@ -5,7 +5,7 @@ export interface OrdenDeTrabajo {
   estadoOrden: string;
   numeroBus: number;
   patente: string;
-  fechaIngreso: Date;
+  fechaIngreso: string;
   fechaProgramada: Date | null;
   fechaEnEjecucion: Date | null;
   fechaEjecutada: Date | null;

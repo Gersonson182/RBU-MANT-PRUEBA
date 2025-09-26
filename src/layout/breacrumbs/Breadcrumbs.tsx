@@ -19,11 +19,11 @@ type BreadcrumbsProps = {
 
 export default function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <h1 className='flex items-center text-xl text-primary max-md:gap-2'>
+    <h1 className='important! flex items-center text-xl text-white max-md:gap-2'>
       {items.map((item, i) => (
         <span key={item.title} className='flex items-center'>
           {item.url ? (
-            <a href={item.url} className='hover:underline'>
+            <a href={item.url} className='text-white hover:underline'>
               {item.title}
             </a>
           ) : (

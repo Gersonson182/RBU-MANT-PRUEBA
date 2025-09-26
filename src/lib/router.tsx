@@ -31,7 +31,7 @@ const router = createBrowserRouter([
 
   // submódulos DE OT
   {
-    path: '/OrdenDeTrabajo',
+    path: 'OTMenu/OrdenDeTrabajo',
     element: (
       <Layout>
         <OrdenTrabajoPage />

@@ -12,6 +12,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 import type { GetOrdenesTrabajoInput } from '@/types/OT/OTMenu';
 
+import OrdenesDeTrabajoTable from '../../components/OT_Menu/ordenesdetrabajo/OrdenesDeTrabajoTable';
+
 export default function OTMenuPage() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -44,25 +46,28 @@ export default function OTMenuPage() {
     }
   }, [navigate, permissions]);
 
+  console.log(registroData);
+
   if (isLoadingRegistros) return <Loading />;
 
   return (
     <FadeInContainer className='min-h-[90vh] py-8 md:px-6'>
-      <div className='mb-4 flex items-center justify-between gap-4 max-md:flex-col'>
-        <div className='h-0.5 flex-1 bg-primary/80 max-md:hidden'>
-          <div className='flex items-center justify-end gap-4 max-md:flex-col'>
-            <div className='flex items-center justify-center gap-4'>
-              <Button
-                className='group'
-                size='icon'
-                onClick={() => window.location.reload()}
-              >
-                <RefreshCcw className='transition-transform duration-500 ease-in-out group-hover:rotate-180' />
-              </Button>
-            </div>
-          </div>
+      <div className='mb-4 flex items-center justify-between'>
+        {/* Línea horizontal */}
+        <div className='flex-1 border-t border-primary/80' />
+
+        {/* Botones de acción */}
+        <div className='ml-4 flex items-center gap-4'>
+          <Button
+            className='group'
+            size='icon'
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCcw className='transition-transform duration-500 ease-in-out group-hover:rotate-180' />
+          </Button>
         </div>
       </div>
+      <OrdenesDeTrabajoTable />
     </FadeInContainer>
   );
 }

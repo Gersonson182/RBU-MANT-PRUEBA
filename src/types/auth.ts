@@ -7,7 +7,8 @@ export type CookieUser = {
 
 export type LegacyUser = {
   codigoUsuario: number;
-  nombreCompleto: string;
+  primernombre: string;
+  apellido: string;
   rut: string;
   codigoPerfil: number;
   nombrePerfil: string;

@@ -73,7 +73,7 @@ export default function SidebarComponent(
                 }}
               >
                 <img
-                  src='/assets/modules/RBU-MANT.png'
+                  src='/assets/modules/MANT-RBU.svg'
                   alt='Mant. Logo'
                   className={cn(
                     'w-1/2 transition-all duration-500 ease-in-out',

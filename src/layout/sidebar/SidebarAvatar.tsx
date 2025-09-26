@@ -7,28 +7,34 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuItem, SidebarMenuSubButton } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth/useAuthStore';
-import { UserCircleIcon, Bell, LogOut } from 'lucide-react';
+import { UserCircleIcon, Bell, LogOut, IdCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function SidebarAvatar() {
   const legacyUser = useAuthStore((state) => state.legacyUser);
   const cookieUser = useAuthStore((state) => state.cookieUser);
 
+  console.log(legacyUser);
+  console.log(cookieUser);
+
   return (
     <SidebarMenuItem className='h-max list-none'>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <SidebarMenuSubButton className='cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'>
-            <Avatar className='h-8 w-8 rounded-lg'>
-              <AvatarFallback className='rounded-lg'>
-                {legacyUser?.nombreCompleto?.split(' ')[0]?.slice(0, 2) ?? '00'}
+            <Avatar>
+              <AvatarImage alt={legacyUser?.primernombre} />
+              <AvatarFallback className='flex items-center justify-center rounded-lg'>
+                <IdCard className='h-4 w-4' />
+                {legacyUser?.primernombre?.split(' ')[0]?.slice(0, 2)}
               </AvatarFallback>
             </Avatar>
+
             <div className='grid flex-1 text-left text-sm leading-tight'>
               <span className='truncate font-medium'>
-                {legacyUser?.nombreCompleto}
+                {legacyUser?.primernombre} {legacyUser?.apellido}
               </span>
               <span className='truncate text-xs text-muted-foreground'>
                 {cookieUser?.rol}
@@ -50,13 +56,12 @@ export default function SidebarAvatar() {
             <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
               <Avatar className='h-8 w-8 rounded-lg'>
                 <AvatarFallback className='rounded-lg'>
-                  {legacyUser?.nombreCompleto?.split(' ')[0]?.slice(0, 2) ??
-                    '00'}
+                  {legacyUser?.primernombre?.split(' ')[0]?.slice(0, 2) ?? '00'}
                 </AvatarFallback>
               </Avatar>
               <div className='grid flex-1 text-left text-sm leading-tight'>
                 <span className='truncate font-medium'>
-                  {legacyUser?.nombreCompleto}
+                  {legacyUser?.primernombre + ' ' + legacyUser?.apellido}
                 </span>
                 <span className='truncate text-xs text-muted-foreground'>
                   {cookieUser?.rol}
