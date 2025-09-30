@@ -35,7 +35,7 @@ export default function SidebarLink({ item }: Props) {
             to={item.url}
             className={cn(
               'block rounded px-2 py-1 transition-all',
-              isActive && 'bg-blue-700 !font-bold',
+              isActive && 'bg-fucshia-100 font-bold',
             )}
           >
             {item.title}
@@ -54,7 +54,7 @@ export default function SidebarLink({ item }: Props) {
                 to={item.url}
                 className={cn(
                   'w-full px-2 py-1',
-                  isActive && 'bg-blue-700 !font-bold',
+                  isActive && 'bg-fucshia-700 !font-bold',
                 )}
               >
                 {item.title}

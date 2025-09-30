@@ -55,12 +55,13 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { DataTablePagination } from '../../DataTablePagination';
 import { cn } from '@/lib/utils';
+import type { OrdenTrabajoFiltro } from '@/types/OT/OTMenu';
 
 // Icons
 import { ArrowUpDown, CalendarIcon, Search, Dock } from 'lucide-react';
 
 export default function OTMenuTable() {
-  const { getOrdenes, getAllFiltros } = useOTMenu();
+  const { getOrdenes, getAllFiltros, getFiltroByTipo } = useOTMenu();
 
   // Estados tabla
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -80,10 +81,23 @@ export default function OTMenuTable() {
   const [selectedManager, setSelectedManager] = useState<number | undefined>();
   const [searchOT, setSearchOT] = useState<string>('');
   const [pageIndex, setPageIndex] = useState(0);
+  const [selectedOT, setSelectedOT] = useState<number | undefined>();
+  const [listaOTs, setListaOTs] = useState<OrdenTrabajoFiltro[]>([]);
 
   // Query tabla
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['ordenes-trabajo', pageIndex],
+    queryKey: [
+      'ordenes-trabajo',
+      pageIndex,
+      searchOT,
+      selectedTaller,
+      selectedEstado,
+      selectedTipo,
+      selectedBus,
+      selectedManager,
+      fechaIngreso ? format(fechaIngreso, 'yyyy-MM-dd') : null,
+      fechaSalida ? format(fechaSalida, 'yyyy-MM-dd') : null,
+    ],
     queryFn: () =>
       getOrdenes({
         nroOT: searchOT ? Number(searchOT) : undefined,
@@ -92,11 +106,14 @@ export default function OTMenuTable() {
         tipoOT: selectedTipo,
         nroBus: selectedBus,
         nroManager: selectedManager,
-        fechaIngreso: fechaIngreso?.toISOString().split('T')[0],
-        fechaSalida: fechaSalida?.toISOString().split('T')[0],
+        fechaIngreso: fechaIngreso
+          ? format(fechaIngreso, 'yyyy-MM-dd')
+          : undefined,
+        fechaSalida: fechaSalida
+          ? format(fechaSalida, 'yyyy-MM-dd')
+          : undefined,
         pagina: pageIndex,
       }),
-    keepPreviousData: true,
   });
 
   // Traer filtros al cargar
@@ -104,7 +121,25 @@ export default function OTMenuTable() {
     getAllFiltros().then((res) => {
       if (res) setFiltros(res);
     });
+
+    getFiltroByTipo('OTs').then((res) => {
+      setListaOTs(res as OrdenTrabajoFiltro[]);
+    });
   }, []);
+
+  const handleClearFilters = () => {
+    setSelectedTaller(undefined);
+    setSelectedEstado(undefined);
+    setSelectedTipo(undefined);
+    setSelectedBus(undefined);
+    setSelectedManager(undefined);
+    setSearchOT('');
+    setFechaIngreso(undefined);
+    setFechaSalida(undefined);
+
+    refetch();
+    toast.info('Filtros limpiados');
+  };
 
   const columns: ColumnDef<OrdenDeTrabajo>[] = [
     {
@@ -152,41 +187,29 @@ export default function OTMenuTable() {
     },
   ];
 
+  const pageSize = 15;
   const table = useReactTable({
     data: data?.data ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: true, // 👈 MUY IMPORTANTE: la paginación viene del backend
-    pageCount: Math.ceil((data?.total ?? 0) / 50), // 👈 total / tamaño fijo (ej: 50 filas)
+    manualPagination: true,
+    pageCount: Math.ceil((data?.total ?? 0) / pageSize),
     state: {
       sorting,
       columnFilters,
       pagination: {
-        pageIndex, // 👈 controlado por React
-        pageSize: 50, // 👈 fijo porque tu SP no soporta cambiarlo
+        pageIndex,
+        pageSize,
       },
     },
     onPaginationChange: (updater) => {
       const newState =
         typeof updater === 'function'
-          ? updater({ pageIndex, pageSize: 50 })
+          ? updater({ pageIndex, pageSize })
           : updater;
       setPageIndex(newState.pageIndex);
     },
   });
-
-  const handleClearFilters = () => {
-    setSelectedTaller(undefined);
-    setSelectedEstado(undefined);
-    setSelectedTipo(undefined);
-    setSelectedBus(undefined);
-    setSelectedManager(undefined);
-    setSearchOT('');
-    setFechaIngreso(undefined);
-    setFechaSalida(undefined);
-    toast.info('Filtros limpiados');
-    refetch();
-  };
 
   if (isLoading) return <p className='p-4'>Cargando órdenes...</p>;
 
@@ -330,16 +353,27 @@ export default function OTMenuTable() {
                         <Calendar
                           mode='single'
                           selected={fechaIngreso}
-                          onSelect={(date) => setFechaIngreso(date)}
+                          onSelect={(date) => {
+                            console.log(
+                              '📅 FechaIngreso seleccionada (Date):',
+                              date,
+                            );
+                            console.log('📅 toISOString:', date?.toISOString());
+                            console.log(
+                              '📅 yyyy-MM-dd local:',
+                              date ? format(date, 'yyyy-MM-dd') : null,
+                            );
+                            setFechaIngreso(date);
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
 
-                  {/* Fecha salida */}
+                  {/* Fecha de cierre */}
                   <div>
                     <label className='text-sm font-semibold text-primary'>
-                      Fecha Salida
+                      Fecha de cierre
                     </label>
                     <Popover>
                       <PopoverTrigger asChild>
@@ -357,7 +391,18 @@ export default function OTMenuTable() {
                         <Calendar
                           mode='single'
                           selected={fechaSalida}
-                          onSelect={(date) => setFechaSalida(date)}
+                          onSelect={(date) => {
+                            console.log(
+                              '📅 FechaSalida seleccionada (Date):',
+                              date,
+                            );
+                            console.log('📅 toISOString:', date?.toISOString());
+                            console.log(
+                              '📅 yyyy-MM-dd local:',
+                              date ? format(date, 'yyyy-MM-dd') : null,
+                            );
+                            setFechaSalida(date);
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -401,8 +446,8 @@ export default function OTMenuTable() {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+              table.getRowModel().rows.map((row, i) => (
+                <TableRow key={row.id} index={i}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(

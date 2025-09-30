@@ -36,6 +36,7 @@ export interface GetOrdenesTrabajoInput {
 // item = 0 || Órdenes de trabajo
 export interface OrdenTrabajoFiltro {
   id_orden_trabajo: number;
+  numeroOrden: number;
 }
 
 // item = 1 || Buses (flota)

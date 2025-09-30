@@ -4,6 +4,7 @@ import type {
   GetOrdenesTrabajoInput,
 } from '../../../types/OT/OTMenu';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export const useOTMenu = () => {
   /**
@@ -55,11 +56,27 @@ export const useOTMenu = () => {
   ): Promise<{ data: OrdenDeTrabajo[]; total: number }> => {
     try {
       // Convertir el objeto filtros en query params
+
       const params = new URLSearchParams(
         Object.entries(filtros).reduce(
           (acc, [key, val]) => {
             if (val !== undefined && val !== null) {
-              acc[key] = String(val);
+              if (key === 'fechaIngreso' || key === 'fechaSalida') {
+                // Forzar a YYYY-MM-DD
+                if (val instanceof Date) {
+                  acc[key] = format(val, 'yyyy-MM-dd');
+                } else {
+                  // Si viene como string, intentar parsear y reformatear
+                  const d = new Date(val);
+                  if (!isNaN(d.getTime())) {
+                    acc[key] = format(d, 'yyyy-MM-dd');
+                  } else {
+                    acc[key] = String(val); // fallback
+                  }
+                }
+              } else {
+                acc[key] = String(val);
+              }
             }
             return acc;
           },

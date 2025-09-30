@@ -63,7 +63,7 @@ export default function SidebarComponent(
       <SidebarHeader className='border-b border-sidebar-border bg-fuchsia-950 text-sidebar-foreground'>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size='lg' asChild>
+            <SidebarMenuButton size='lg' asChild variant='logo'>
               <Link
                 to='/'
                 className='flex items-center justify-center'

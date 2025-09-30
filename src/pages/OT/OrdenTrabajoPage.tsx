@@ -10,13 +10,10 @@ import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import type { GetOrdenesTrabajoInput } from '@/types/OT/OTMenu';
-
 import OrdenesDeTrabajoTable from '../../components/OT_Menu/ordenesdetrabajo/OrdenesDeTrabajoTable';
 
 export default function OTMenuPage() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
 
   const { getOrdenes } = useOTMenu();
 
@@ -53,6 +50,7 @@ export default function OTMenuPage() {
   return (
     <FadeInContainer className='min-h-[90vh] py-8 md:px-6'>
       <div className='mb-4 flex items-center justify-between'>
+        <h1 className='text-2xl font-bold'>Ordenes de Trabajo</h1>
         {/* Línea horizontal */}
         <div className='flex-1 border-t border-primary/80' />
 
