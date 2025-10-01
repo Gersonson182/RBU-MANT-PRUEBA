@@ -107,7 +107,7 @@ export default function Layout({ children }: Props) {
       {/* Contenedor principal */}
       <SidebarInset className='flex w-full max-w-full flex-1 flex-col overflow-x-hidden'>
         {/* Header fijo */}
-        <header className='relative flex h-[64px] items-center border-b bg-primary px-4 py-2 text-primary-foreground shadow-sm'>
+        <header className='relative flex h-[64px] items-center border-b bg-fuchsia-950 px-4 py-2 text-white shadow-sm'>
           {/* Botón Sidebar y Breadcrumbs */}
           <div className='flex items-center gap-2'>
             <SidebarTrigger className='text-primary-foreground' />

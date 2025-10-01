@@ -4,7 +4,8 @@ import type {
   GetOrdenesTrabajoInput,
 } from '../../../types/OT/OTMenu';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 export const useOTMenu = () => {
   /**
@@ -51,29 +52,18 @@ export const useOTMenu = () => {
     }
   };
 
+  dayjs.extend(utc);
+
   const getOrdenes = async (
     filtros: GetOrdenesTrabajoInput,
   ): Promise<{ data: OrdenDeTrabajo[]; total: number }> => {
     try {
-      // Convertir el objeto filtros en query params
-
       const params = new URLSearchParams(
         Object.entries(filtros).reduce(
           (acc, [key, val]) => {
             if (val !== undefined && val !== null) {
               if (key === 'fechaIngreso' || key === 'fechaSalida') {
-                // Forzar a YYYY-MM-DD
-                if (val instanceof Date) {
-                  acc[key] = format(val, 'yyyy-MM-dd');
-                } else {
-                  // Si viene como string, intentar parsear y reformatear
-                  const d = new Date(val);
-                  if (!isNaN(d.getTime())) {
-                    acc[key] = format(d, 'yyyy-MM-dd');
-                  } else {
-                    acc[key] = String(val); // fallback
-                  }
-                }
+                acc[key] = dayjs(val).format('YYYY-MM-DD');
               } else {
                 acc[key] = String(val);
               }
@@ -84,9 +74,10 @@ export const useOTMenu = () => {
         ),
       );
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/ot?${params.toString()}`,
-      );
+      const url = `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/ot?${params.toString()}`;
+      console.log('🔍 URL getOrdenes:', url); // 👈 DEBUG
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         toast.error('Error al obtener órdenes de trabajo');
@@ -95,7 +86,6 @@ export const useOTMenu = () => {
 
       const { data, total } = await response.json();
 
-      // Tipar los datos con OrdenDeTrabajo
       return {
         data: (data ?? []) as OrdenDeTrabajo[],
         total: total ?? 0,

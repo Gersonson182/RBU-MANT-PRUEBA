@@ -67,6 +67,7 @@ export interface TipoOTFiltro {
 // item = 13 || Nros Manager
 export interface ManagerFiltro {
   ot_manager: number;
+  nombre_manager?: string;
 }
 
 // item = 14 || Falla Principal

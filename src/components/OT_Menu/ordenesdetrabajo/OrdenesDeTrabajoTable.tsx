@@ -3,9 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import type {
@@ -13,15 +10,13 @@ import type {
   ColumnFiltersState,
   SortingState,
 } from '@tanstack/react-table';
-import { format } from 'date-fns';
+
 import { toast } from 'sonner';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 import { useOTMenu } from '@/hooks/OT/OTMenu/useOTMenu';
-import type {
-  OrdenDeTrabajo,
-  GetOrdenesTrabajoInput,
-  DataFiltrosMant,
-} from '@/types/OT/OTMenu';
+import type { OrdenDeTrabajo } from '@/types/OT/OTMenu';
 
 // UI ShadCN
 import { Button } from '@/components/ui/button';
@@ -55,17 +50,27 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { DataTablePagination } from '../../DataTablePagination';
 import { cn } from '@/lib/utils';
-import type { OrdenTrabajoFiltro } from '@/types/OT/OTMenu';
+
+import { VirtualizedSearchSelect } from '@/components/ui/VirtualizedSelect';
 
 // Icons
 import { ArrowUpDown, CalendarIcon, Search, Dock } from 'lucide-react';
 
+import { estadoColors } from './helpers/statusColors';
+
+import { useFiltroStore } from '@/store/OT/useFilterStore';
+
+dayjs.extend(utc);
+
 export default function OTMenuTable() {
-  const { getOrdenes, getAllFiltros, getFiltroByTipo } = useOTMenu();
+  const { filtros: filtrosCache, setFiltros: setFiltrosCache } =
+    useFiltroStore();
+
+  const { getOrdenes, getAllFiltros } = useOTMenu();
 
   // Estados tabla
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting] = useState<SortingState>([]);
+  const [columnFilters] = useState<ColumnFiltersState>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Fechas
@@ -73,30 +78,32 @@ export default function OTMenuTable() {
   const [fechaSalida, setFechaSalida] = useState<Date>();
 
   // Filtros dinámicos
-  const [filtros, setFiltros] = useState<DataFiltrosMant | null>(null);
+
   const [selectedTaller, setSelectedTaller] = useState<number | undefined>();
   const [selectedEstado, setSelectedEstado] = useState<number | undefined>();
   const [selectedTipo, setSelectedTipo] = useState<number | undefined>();
   const [selectedBus, setSelectedBus] = useState<number | undefined>();
   const [selectedManager, setSelectedManager] = useState<number | undefined>();
-  const [searchOT, setSearchOT] = useState<string>('');
+
   const [pageIndex, setPageIndex] = useState(0);
-  const [selectedOT, setSelectedOT] = useState<number | undefined>();
-  const [listaOTs, setListaOTs] = useState<OrdenTrabajoFiltro[]>([]);
+  const [busOpen, setBusOpen] = useState(false);
+  const [managerOpen, setManagerOpen] = useState(false);
+
+  const [tempSearchOT, setTempSearchOT] = useState('');
+  const [searchOT, setSearchOT] = useState('');
 
   // Query tabla
   const { data, isLoading, refetch } = useQuery({
     queryKey: [
       'ordenes-trabajo',
       pageIndex,
-      searchOT,
       selectedTaller,
       selectedEstado,
       selectedTipo,
       selectedBus,
       selectedManager,
-      fechaIngreso ? format(fechaIngreso, 'yyyy-MM-dd') : null,
-      fechaSalida ? format(fechaSalida, 'yyyy-MM-dd') : null,
+      fechaIngreso ? dayjs(fechaIngreso).utc().format('YYYY-MM-DD') : null,
+      fechaSalida ? dayjs(fechaSalida).utc().format('YYYY-MM-DD') : null,
     ],
     queryFn: () =>
       getOrdenes({
@@ -107,25 +114,38 @@ export default function OTMenuTable() {
         nroBus: selectedBus,
         nroManager: selectedManager,
         fechaIngreso: fechaIngreso
-          ? format(fechaIngreso, 'yyyy-MM-dd')
+          ? dayjs(fechaIngreso).utc().format('YYYY-MM-DD')
           : undefined,
         fechaSalida: fechaSalida
-          ? format(fechaSalida, 'yyyy-MM-dd')
+          ? dayjs(fechaSalida).utc().format('YYYY-MM-DD')
           : undefined,
+
         pagina: pageIndex,
       }),
   });
 
   // Traer filtros al cargar
   useEffect(() => {
-    getAllFiltros().then((res) => {
-      if (res) setFiltros(res);
-    });
+    let mounted = true;
 
-    getFiltroByTipo('OTs').then((res) => {
-      setListaOTs(res as OrdenTrabajoFiltro[]);
-    });
-  }, []);
+    (async () => {
+      if (filtrosCache.talleres.length === 0) {
+        const all = await getAllFiltros();
+        if (mounted && all) {
+          setFiltrosCache(all);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [filtrosCache, getAllFiltros, setFiltrosCache]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchOT(tempSearchOT), 350);
+    return () => clearTimeout(timer);
+  }, [tempSearchOT]);
 
   const handleClearFilters = () => {
     setSelectedTaller(undefined);
@@ -137,8 +157,25 @@ export default function OTMenuTable() {
     setFechaIngreso(undefined);
     setFechaSalida(undefined);
 
-    refetch();
-    toast.info('Filtros limpiados');
+    //  Forzar refetch en el siguiente ciclo
+    setTimeout(() => {
+      refetch();
+      toast.info('Filtros limpiados');
+    }, 0);
+  };
+
+  const handleSelectFechaIngreso = (date?: Date) => {
+    setFechaIngreso(date);
+    if (date) {
+      setFechaSalida(undefined);
+    }
+  };
+
+  const handleSelectFechaSalida = (date?: Date) => {
+    setFechaSalida(date);
+    if (date) {
+      setFechaIngreso(undefined);
+    }
   };
 
   const columns: ColumnDef<OrdenDeTrabajo>[] = [
@@ -167,8 +204,20 @@ export default function OTMenuTable() {
     {
       accessorKey: 'estadoOrden',
       header: 'Estado',
-      cell: ({ row }) => <span>{row.original.estadoOrden}</span>,
+      cell: ({ row }) => {
+        const estado = row.original.estadoOrden;
+        return (
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-semibold ${
+              estadoColors[estado] ?? 'bg-slate-300 text-black'
+            }`}
+          >
+            {estado}
+          </span>
+        );
+      },
     },
+
     {
       accessorKey: 'nombreTerminal',
       header: 'Terminal',
@@ -244,33 +293,34 @@ export default function OTMenuTable() {
 
             <div className='absolute left-0 top-[100%] z-10 w-full shadow-lg'>
               <AccordionContent className='space-y-6 rounded-md border bg-muted p-6'>
-                <div className='grid grid-cols-3 gap-6'>
+                <div className='grid grid-cols-4 gap-4'>
                   {/* Nº OT */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
-                      Nº OT
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
+                      N° OT
                     </label>
                     <Input
-                      value={searchOT}
-                      onChange={(e) => setSearchOT(e.target.value)}
+                      value={tempSearchOT}
+                      onChange={(e) => setTempSearchOT(e.target.value)}
                       placeholder='Ej: 215890'
+                      className='h-9'
                     />
                   </div>
 
                   {/* Taller */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
                       Taller
                     </label>
                     <Select
                       value={selectedTaller?.toString()}
                       onValueChange={(val) => setSelectedTaller(Number(val))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className='h-9'>
                         <SelectValue placeholder='Todos' />
                       </SelectTrigger>
                       <SelectContent>
-                        {filtros?.talleres?.map((t) => (
+                        {filtrosCache?.talleres?.map((t) => (
                           <SelectItem
                             key={t.codigo_taller}
                             value={t.codigo_taller.toString()}
@@ -282,20 +332,20 @@ export default function OTMenuTable() {
                     </Select>
                   </div>
 
-                  {/* Estado OT */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
+                  {/* Estado */}
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
                       Estado
                     </label>
                     <Select
                       value={selectedEstado?.toString()}
                       onValueChange={(val) => setSelectedEstado(Number(val))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className='h-9'>
                         <SelectValue placeholder='Todos' />
                       </SelectTrigger>
                       <SelectContent>
-                        {filtros?.estadosOt?.map((e) => (
+                        {filtrosCache?.estadosOt?.map((e) => (
                           <SelectItem
                             key={e.id_estado_solicitud}
                             value={e.id_estado_solicitud.toString()}
@@ -308,19 +358,19 @@ export default function OTMenuTable() {
                   </div>
 
                   {/* Tipo OT */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
                       Tipo OT
                     </label>
                     <Select
                       value={selectedTipo?.toString()}
                       onValueChange={(val) => setSelectedTipo(Number(val))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className='h-9'>
                         <SelectValue placeholder='Todos' />
                       </SelectTrigger>
                       <SelectContent>
-                        {filtros?.tiposOt?.map((t) => (
+                        {filtrosCache?.tiposOt?.map((t) => (
                           <SelectItem
                             key={t.id_tipo_orden}
                             value={t.id_tipo_orden.toString()}
@@ -333,19 +383,19 @@ export default function OTMenuTable() {
                   </div>
 
                   {/* Fecha ingreso */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
                       Fecha Ingreso
                     </label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant='outline'
-                          className='w-full justify-start text-left font-normal'
+                          className='h-9 justify-start font-normal'
                         >
-                          <CalendarIcon className='mr-2 h-4 w-4 text-fuchsia-900' />
+                          <CalendarIcon className='mr-2 h-4 w-4' />
                           {fechaIngreso
-                            ? format(fechaIngreso, 'dd-MM-yyyy')
+                            ? dayjs(fechaIngreso).format('DD-MM-YYYY')
                             : 'Seleccione'}
                         </Button>
                       </PopoverTrigger>
@@ -353,37 +403,26 @@ export default function OTMenuTable() {
                         <Calendar
                           mode='single'
                           selected={fechaIngreso}
-                          onSelect={(date) => {
-                            console.log(
-                              '📅 FechaIngreso seleccionada (Date):',
-                              date,
-                            );
-                            console.log('📅 toISOString:', date?.toISOString());
-                            console.log(
-                              '📅 yyyy-MM-dd local:',
-                              date ? format(date, 'yyyy-MM-dd') : null,
-                            );
-                            setFechaIngreso(date);
-                          }}
+                          onSelect={handleSelectFechaIngreso}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
 
-                  {/* Fecha de cierre */}
-                  <div>
-                    <label className='text-sm font-semibold text-primary'>
-                      Fecha de cierre
+                  {/* Fecha cierre */}
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
+                      Fecha Cierre
                     </label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant='outline'
-                          className='w-full justify-start text-left font-normal'
+                          className='h-9 justify-start font-normal'
                         >
-                          <CalendarIcon className='mr-2 h-4 w-4 text-fuchsia-900' />
+                          <CalendarIcon className='mr-2 h-4 w-4' />
                           {fechaSalida
-                            ? format(fechaSalida, 'dd-MM-yyyy')
+                            ? dayjs(fechaSalida).format('DD-MM-YYYY')
                             : 'Seleccione'}
                         </Button>
                       </PopoverTrigger>
@@ -391,33 +430,99 @@ export default function OTMenuTable() {
                         <Calendar
                           mode='single'
                           selected={fechaSalida}
-                          onSelect={(date) => {
-                            console.log(
-                              '📅 FechaSalida seleccionada (Date):',
-                              date,
-                            );
-                            console.log('📅 toISOString:', date?.toISOString());
-                            console.log(
-                              '📅 yyyy-MM-dd local:',
-                              date ? format(date, 'yyyy-MM-dd') : null,
-                            );
-                            setFechaSalida(date);
-                          }}
+                          onSelect={handleSelectFechaSalida}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {/* Bus */}
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
+                      Bus
+                    </label>
+                    <Select
+                      open={busOpen}
+                      onOpenChange={setBusOpen}
+                      value={selectedBus?.toString()}
+                      onValueChange={(val) => setSelectedBus(Number(val))}
+                    >
+                      <SelectTrigger className='h-9'>
+                        <SelectValue placeholder='Todos'>
+                          {selectedBus
+                            ? `${
+                                filtrosCache?.buses.find(
+                                  (b) => b.numero_interno === selectedBus,
+                                )?.placa_patente
+                              } - ${
+                                filtrosCache?.buses.find(
+                                  (b) => b.numero_interno === selectedBus,
+                                )?.numero_interno
+                              }`
+                            : 'Todos'}
+                        </SelectValue>
+                      </SelectTrigger>
+
+                      <VirtualizedSearchSelect
+                        items={filtrosCache?.buses ?? []}
+                        getKey={(b) => b.codigo_flota}
+                        getLabel={(b) =>
+                          `${b.placa_patente} - ${b.numero_interno}`
+                        }
+                        getValue={(b) => b.numero_interno}
+                        open={busOpen}
+                      />
+                    </Select>
+                  </div>
+                  {/* OT Manager */}
+                  <div className='flex flex-col space-y-1'>
+                    <label className='text-xs font-medium text-muted-foreground'>
+                      OT Manager
+                    </label>
+                    <Select
+                      open={managerOpen}
+                      onOpenChange={setManagerOpen}
+                      value={selectedManager?.toString()}
+                      onValueChange={(val) => setSelectedManager(Number(val))}
+                    >
+                      <SelectTrigger className='h-9'>
+                        <SelectValue placeholder='Todos'>
+                          {selectedManager
+                            ? (filtrosCache?.nrosManager.find(
+                                (m) => m.ot_manager === selectedManager,
+                              )?.nombre_manager ?? selectedManager.toString())
+                            : 'Todos'}
+                        </SelectValue>
+                      </SelectTrigger>
+
+                      <VirtualizedSearchSelect
+                        items={filtrosCache?.nrosManager ?? []}
+                        getKey={(m) => m.ot_manager}
+                        getLabel={(m) =>
+                          m.nombre_manager
+                            ? `${m.nombre_manager} (${m.ot_manager})`
+                            : m.ot_manager.toString()
+                        }
+                        getValue={(m) => m.ot_manager}
+                        open={managerOpen}
+                      />
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Botones */}
-                <div className='mt-4 flex flex-wrap justify-end gap-4'>
+                <div className='mt-4 flex justify-end gap-3'>
                   <Button
                     onClick={() => refetch()}
-                    className='bg-fuchsia-900 text-white hover:bg-fuchsia-900'
+                    className='h-9 bg-fuchsia-900 text-white hover:bg-fuchsia-900'
                   >
                     <Dock className='mr-2 h-4 w-4' /> Actualizar
                   </Button>
-                  <Button variant='secondary' onClick={handleClearFilters}>
+                  <Button
+                    variant='secondary'
+                    className='h-9'
+                    onClick={handleClearFilters}
+                  >
                     Limpiar filtros
                   </Button>
                 </div>
@@ -432,7 +537,7 @@ export default function OTMenuTable() {
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} isHeader>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
                     {flexRender(
@@ -444,6 +549,7 @@ export default function OTMenuTable() {
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row, i) => (

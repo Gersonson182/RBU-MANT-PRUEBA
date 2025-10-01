@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 type TableRowProps = React.HTMLAttributes<HTMLTableRowElement> & {
   index?: number;
+  isHeader?: boolean;
 };
 
 const Table = React.forwardRef<
@@ -24,7 +25,15 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
+  <thead
+    ref={ref}
+    className={cn(
+      'bg-fuchsia-950 text-white [&_th]:font-semibold [&_th]:text-white',
+      '[&_tr]:border-b',
+      className,
+    )}
+    {...props}
+  />
 ));
 TableHeader.displayName = 'TableHeader';
 
@@ -56,24 +65,25 @@ const TableFooter = React.forwardRef<
 ));
 TableFooter.displayName = 'TableFooter';
 
-const TableRow = React.forwardRef<
-  HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement> & TableRowProps
->(({ className, index, ...props }, ref) => (
-  <tr
-    ref={ref}
-    className={cn(
-      'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
-      index
-        ? index % 2 === 0
-          ? 'bg-transparent hover:bg-zinc-200'
-          : 'bg-fuchsia-900 text-white hover:bg-fuchsia-700'
-        : 'bg-transparent hover:bg-muted',
-      className,
-    )}
-    {...props}
-  />
-));
+const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
+  ({ className, index, isHeader, ...props }, ref) => (
+    <tr
+      ref={ref}
+      className={cn(
+        'border-b transition-colors data-[state=selected]:bg-muted',
+        !isHeader && 'hover:bg-muted/50',
+        index && !isHeader
+          ? index % 2 === 0
+            ? 'bg-transparent hover:bg-zinc-200'
+            : 'bg-zinc-100 hover:bg-zinc-200'
+          : 'bg-transparent',
+        className,
+      )}
+      {...props}
+    />
+  ),
+);
+
 TableRow.displayName = 'TableRow';
 
 const TableHead = React.forwardRef<
