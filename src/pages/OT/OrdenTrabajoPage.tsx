@@ -8,9 +8,10 @@ import Loading from '@/components/Loading';
 
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import OrdenesDeTrabajoTable from '../../components/OT_Menu/ordenesdetrabajo/OrdenesDeTrabajoTable';
+import OrdenDeTrabajoCreate from '../../components/OT_Menu/ordenesdetrabajo/OrdenesDetrabajoCreate';
 
 export default function OTMenuPage() {
   const navigate = useNavigate();
@@ -18,10 +19,11 @@ export default function OTMenuPage() {
   const { getOrdenes } = useOTMenu();
 
   const setRegistros = useOrdenDeTrabajoStore((state) => state.setRegistros);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const permissions = useAuthStore((state) => state.permissions);
 
   const { data: registroData, isLoading: isLoadingRegistros } = useQuery({
-    queryKey: ['ordenes-de-trabajo'],
+    queryKey: ['ordenes-trabajo'],
     queryFn: () => getOrdenes({ pagina: 0 }),
   });
 
@@ -49,7 +51,7 @@ export default function OTMenuPage() {
 
   return (
     <FadeInContainer className='min-h-[90vh] py-8 md:px-6'>
-      <div className='mb-4 flex items-center justify-between'>
+      <div className='mb-4 flex items-center justify-between gap-4'>
         <h1 className='text-2xl font-bold'>Ordenes de Trabajo</h1>
         {/* Línea horizontal */}
         <div className='flex-1 border-t border-primary/80' />
@@ -64,8 +66,17 @@ export default function OTMenuPage() {
             <RefreshCcw className='transition-transform duration-500 ease-in-out group-hover:rotate-180' />
           </Button>
         </div>
+        <div className='flex items-center justify-center gap-4'>
+          <Button onClick={() => setIsCreateOpen(true)}>
+            Agregar Orden de Trabajo
+          </Button>
+        </div>
       </div>
       <OrdenesDeTrabajoTable />
+
+      {isCreateOpen && (
+        <OrdenDeTrabajoCreate open={isCreateOpen} setOpen={setIsCreateOpen} />
+      )}
     </FadeInContainer>
   );
 }

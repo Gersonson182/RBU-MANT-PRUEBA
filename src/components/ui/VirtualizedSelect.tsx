@@ -9,7 +9,7 @@ type VirtualizedSearchSelectProps<T> = {
   getLabel: (item: T) => string;
   getValue: (item: T) => string | number;
   height?: number;
-  open?: boolean; // 👈 nuevo, pasamos si el select está abierto
+  open?: boolean;
 };
 
 export function VirtualizedSearchSelect<T>({
@@ -37,7 +37,7 @@ export function VirtualizedSearchSelect<T>({
     overscan: 5,
   });
 
-  // 👇 medir cuando se abre
+  // medir cuando se abre
   React.useEffect(() => {
     if (open) {
       rowVirtualizer.measure();

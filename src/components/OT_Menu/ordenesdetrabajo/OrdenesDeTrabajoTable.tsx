@@ -46,10 +46,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { DataTablePagination } from '../../DataTablePagination';
 import { cn } from '@/lib/utils';
+import OTDeleteDialog from './OrdenesDeTrabajoDelete';
+import {
+  Trash2,
+  Settings,
+  User,
+  Package,
+  FileText,
+  MoreVertical,
+} from 'lucide-react';
 
 import { VirtualizedSearchSelect } from '@/components/ui/VirtualizedSelect';
 
@@ -84,6 +99,9 @@ export default function OTMenuTable() {
   const [selectedTipo, setSelectedTipo] = useState<number | undefined>();
   const [selectedBus, setSelectedBus] = useState<number | undefined>();
   const [selectedManager, setSelectedManager] = useState<number | undefined>();
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const [pageIndex, setPageIndex] = useState(0);
   const [busOpen, setBusOpen] = useState(false);
@@ -181,20 +199,18 @@ export default function OTMenuTable() {
   const columns: ColumnDef<OrdenDeTrabajo>[] = [
     {
       accessorKey: 'numeroOrden',
-      header: ({ column }) => (
-        <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Nº OT <ArrowUpDown className='ml-2 h-4 w-4' />
-        </Button>
-      ),
+      header: 'Nº OT',
       cell: ({ row }) => <span>{row.original.numeroOrden}</span>,
     },
     {
       accessorKey: 'patente',
       header: 'Patente',
       cell: ({ row }) => <span>{row.original.patente}</span>,
+    },
+    {
+      accessorKey: 'numeroBus',
+      header: 'Nº Bus',
+      cell: ({ row }) => <span>{row.original.numeroBus}</span>,
     },
     {
       accessorKey: 'tipoOrden',
@@ -224,15 +240,123 @@ export default function OTMenuTable() {
       cell: ({ row }) => <span>{row.original.nombreTerminal}</span>,
     },
     {
+      accessorKey: 'ultMantencion',
+      header: 'Ult. Mantención',
+      cell: ({ row }) => {
+        return <span>{row.original.ultMantencion?.toString() ?? '-'}</span>;
+      },
+    },
+    {
       accessorKey: 'fechaIngreso',
       header: 'F. Ingreso',
       cell: ({ row }) => <span>{row.original.fechaIngreso}</span>,
+    },
+    {
+      accessorKey: 'fechaCierre',
+      header: 'F. Cierre',
+      cell: ({ row }) => {
+        return <span>{row.original.fechaCierre?.toString() ?? '-'}</span>;
+      },
     },
 
     {
       accessorKey: 'kilometraje',
       header: 'Km',
       cell: ({ row }) => <span>{row.original.kilometraje}</span>,
+    },
+
+    {
+      id: 'acciones',
+      header: 'Acciones',
+      cell: ({ row }) => {
+        const idOrden = row.original.numeroOrden;
+
+        return (
+          <div className='flex flex-wrap gap-2'>
+            {/* Botones visibles solo en pantallas grandes */}
+            <div className='hidden gap-2 2xl:flex'>
+              <Button
+                variant='outline'
+                size='sm'
+                className='border-fuchsia-300 text-fuchsia-700'
+              >
+                <Settings className='mr-1 h-4 w-4' /> Sistema
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='border-fuchsia-300 text-fuchsia-700'
+              >
+                <User className='mr-1 h-4 w-4' /> Personal
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='border-fuchsia-300 text-fuchsia-700'
+              >
+                <Package className='mr-1 h-4 w-4' /> Insumos
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                className='border-fuchsia-300 text-fuchsia-700'
+              >
+                <FileText className='mr-1 h-4 w-4' /> Ver Detalles
+              </Button>
+              <Button variant='destructive' size='sm'>
+                <Trash2 className='mr-1 h-4 w-4' /> Eliminar
+              </Button>
+            </div>
+
+            {/* Dropdown solo en pantallas menores a lg */}
+            <div className='2xl:hidden'>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='border-fuchsia-300 text-fuchsia-700'
+                  >
+                    <MoreVertical className='h-4 w-4' />
+                    Acciones
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem
+                    onClick={() => console.log('Sistema', idOrden)}
+                  >
+                    <Settings className='mr-2 h-4 w-4 text-fuchsia-700' />{' '}
+                    Sistema
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => console.log('Personal', idOrden)}
+                  >
+                    <User className='mr-2 h-4 w-4 text-fuchsia-700' /> Personal
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => console.log('Insumos', idOrden)}
+                  >
+                    <Package className='mr-2 h-4 w-4 text-fuchsia-700' />{' '}
+                    Insumos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => console.log('Ver Detalles', idOrden)}
+                  >
+                    <FileText className='mr-2 h-4 w-4 text-fuchsia-700' /> Ver
+                    Detalles
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => console.log('Eliminar', idOrden)}
+                    className='text-red-600'
+                  >
+                    <Trash2 className='mr-2 h-4 w-4 text-red-600' /> Eliminar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        );
+      },
     },
   ];
 
@@ -581,6 +705,14 @@ export default function OTMenuTable() {
       <div className='flex items-center justify-center'>
         <DataTablePagination table={table} />
       </div>
+
+      {isDeleteOpen && selectedId && (
+        <OTDeleteDialog
+          open={isDeleteOpen}
+          setOpen={setIsDeleteOpen}
+          idOrden={selectedId}
+        />
+      )}
     </>
   );
 }

@@ -110,3 +110,58 @@ export interface DataFiltrosMant {
   mecanicos: MecanicoFiltro[];
   servicios: ServicioFiltro[];
 }
+
+// Types de sistemas y subsistemas por ejemplo : || carroceria - choque propio, amortiguacion, etc ||
+
+export interface SistemaFiltro {
+  id_falla_principal: number;
+  detalle_falla_principal: string;
+}
+
+export interface SubsistemaFiltro {
+  id_falla_secundaria: number;
+  id_falla_principal: number;
+  detalle_falla_secundaria: string;
+}
+
+// Types para crear una nueva Orden de Trabajo
+
+export interface CreateFallaInput {
+  id_falla_principal: number;
+  id_falla_secundaria?: number | null;
+  id_personal_falla_principal?: number | null;
+  id_personal_falla_secundaria?: number | null;
+  id_perfil_principal?: number | null;
+  id_perfil_secundaria?: number | null;
+}
+
+export interface CreateOrdenTrabajoInput {
+  id_personal_ingreso: number; // viene del usuario logeado
+  id_tipo_orden: number;
+  codigo_flota: number;
+  detalle_ingreso: string;
+  fecha_programada?: string | null;
+  codigo_taller: number;
+  servicio?: string | null;
+  fallas: CreateFallaInput[];
+}
+
+export interface OrdenTrabajoCreada {
+  idSolicitudIngresada: number;
+  bus: string;
+  ppu: string;
+  ingreso: string;
+}
+
+export interface CreateOrdenTrabajoResponse {
+  message: string;
+  data: OrdenTrabajoCreada;
+}
+
+// eliminar OT
+
+export interface DeleteOrdenTrabajoResponse {
+  success: boolean; // mapeado en el controller
+  respuesta: number; // 1 = OK, 0 = no existe, -1 = error
+  mensaje: string;
+}

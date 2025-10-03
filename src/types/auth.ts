@@ -11,6 +11,8 @@ export type LegacyUser = {
   apellido: string;
   rut: string;
   codigoPerfil: number;
+  idperfilusuario: number;
+  idpersonalcontrolgestion: number;
   nombrePerfil: string;
   codigoTerminal?: number;
   codigoTaller?: number;
