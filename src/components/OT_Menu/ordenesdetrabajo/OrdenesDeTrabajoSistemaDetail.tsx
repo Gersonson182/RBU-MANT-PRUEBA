@@ -11,12 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Save, X, Loader2, Check, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ConfirmModal } from './OrdenDeTrabajoSistemaConfirmDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import FallaDeleteDialog from './OrdenDeTrabajoFallasDeleteDialog';
-import type { SiglaPreventiva } from '@/types/OT/OTMenu';
+import type { SiglaPreventivaFlota } from '@/types/OT/OTMenu';
+import { VirtualizedSearchSelect } from '@/components/ui/VirtualizedSelect';
 
 type FilaPreventiva = {
   codigoFlota: number;
@@ -43,6 +44,8 @@ export default function OTDetalle({ idOrden }: Props) {
     updateFalla,
     getMantencionPreventiva,
     getSiglasPreventivasByFlota,
+    createMantencionPreventiva,
+    getSiglasPreventivasByFlotaYOrden,
   } = useOTMenu();
 
   const { data, isLoading } = useQuery({
@@ -68,7 +71,6 @@ export default function OTDetalle({ idOrden }: Props) {
   );
 
   const [codigoFlota, setCodigoFlota] = useState<number | null>(null);
-  const [selectedSigla, setSelectedSigla] = useState<string>('');
 
   // eliminar fallas
   const [openDelete, setOpenDelete] = useState(false);
@@ -88,13 +90,30 @@ export default function OTDetalle({ idOrden }: Props) {
   const [cambiosPendientes, setCambiosPendientes] = useState<string[]>([]);
   const [modalConfirmar, setModalConfirmar] = useState(false);
 
-  const [siglas, setSiglas] = useState<SiglaPreventiva[]>([]);
+  const [siglas, setSiglas] = useState<SiglaPreventivaFlota[]>([]);
+
+  // --- ESTADOS PARA PREVENTIVA --- //
+  const [selectedSigla, setSelectedSigla] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const [siglaOpen, setSiglaOpen] = useState(false);
+
+  const [filasPreventivas, setFilasPreventivas] = useState<FilaSistema[]>([]);
 
   useEffect(() => {
-    if (codigoFlota) {
-      getSiglasPreventivasByFlota(codigoFlota).then(setSiglas);
+    if (codigoFlota && idOrden) {
+      getSiglasPreventivasByFlotaYOrden({
+        codigo_flota: codigoFlota,
+        id_orden_trabajo: idOrden,
+      }).then((result) => {
+        setSiglas(result);
+
+        // Autoseleccionar la sigla que ya está registrada (si existe)
+        const activa = result.find((s) => s.ya_registrada === 1);
+        if (activa) setSelectedSigla(String(activa.id_man_prev));
+      });
     }
-  }, [codigoFlota]);
+  }, [codigoFlota, idOrden]);
 
   // --- EFECTO INICIAL PARA CARGAR DATA --- //
   useEffect(() => {
@@ -163,6 +182,43 @@ export default function OTDetalle({ idOrden }: Props) {
     };
     cargarPreventiva();
   }, [data?.basic?.tipoOrden, data?.basic?.numeroBus]);
+
+  useEffect(() => {
+    const cargarPreventivasExistentes = async () => {
+      if (!codigoFlota || !idOrden) return;
+
+      try {
+        // 1️Traer siglas disponibles y las ya registradas para esta orden
+        const result = await getSiglasPreventivasByFlotaYOrden({
+          codigo_flota: codigoFlota,
+          id_orden_trabajo: idOrden,
+        });
+
+        setSiglas(result);
+
+        // 2️ Crear estructura inicial de filas preventivas según las que ya existen
+        const filasIniciales = result
+          .filter((s) => s.ya_registrada === 1)
+          .map((s) => ({
+            tempId: s.id_man_prev,
+            idRelacionFalla: s.id_man_prev, // mismo id
+            id_falla_principal: s.id_man_prev, // sigla asociada
+            isNew: false,
+          }));
+
+        setFilasPreventivas(filasIniciales);
+
+        // 3️Dejar seleccionada la primera como referencia
+        const activa = result.find((s) => s.ya_registrada === 1);
+        if (activa) setSelectedSigla(String(activa.id_man_prev));
+      } catch (error) {
+        console.error(error);
+        toast.error('Error al cargar siglas preventivas registradas');
+      }
+    };
+
+    cargarPreventivasExistentes();
+  }, [codigoFlota, idOrden]);
 
   // --- HANDLERS --- //
   const handleChangePrincipal = async (idPrincipal: number, tempId: number) => {
@@ -240,6 +296,113 @@ export default function OTDetalle({ idOrden }: Props) {
     setFilaSeleccionada(fila);
     setCambiosPendientes(cambios);
     setModalConfirmar(true);
+  };
+
+  const handleAgregarFilaPreventiva = () => {
+    const tempId = Date.now();
+    setFilasPreventivas((prev) => [
+      ...prev,
+      {
+        tempId,
+        idRelacionFalla: null,
+        isNew: true,
+      },
+    ]);
+    setEditando(tempId);
+  };
+
+  const handleChangePrincipalPreventiva = async (
+    idPrincipal: number,
+    tempId: number,
+  ) => {
+    const subs = await getSubSistemas(idPrincipal);
+    setSubSistemasMap((prev) => ({ ...prev, [idPrincipal]: subs }));
+    setFilasPreventivas((prev) =>
+      prev.map((f) =>
+        f.tempId === tempId
+          ? {
+              ...f,
+              id_falla_principal: idPrincipal,
+              id_falla_secundaria: undefined,
+            }
+          : f,
+      ),
+    );
+  };
+
+  const handleChangeSecundarioPreventiva = (
+    idSecundario: number,
+    tempId: number,
+  ) => {
+    setFilasPreventivas((prev) =>
+      prev.map((f) =>
+        f.tempId === tempId ? { ...f, id_falla_secundaria: idSecundario } : f,
+      ),
+    );
+  };
+
+  // --- HANDLER PARA INSERTAR FALLA PREVENTIVA --- //
+  const handleGuardarFilaPreventiva = async (fila: FilaSistema) => {
+    if (!data?.basic) {
+      toast.error('No hay datos de la orden de trabajo disponibles');
+      return;
+    }
+
+    if (!fila.id_falla_principal) {
+      toast.error('Debe seleccionar una sigla preventiva antes de guardar');
+      return;
+    }
+
+    // Buscar la sigla seleccionada en base al id_falla_principal de esta fila
+    const siglaSeleccionada = siglas.find(
+      (s) => s.id_man_prev === fila.id_falla_principal,
+    );
+
+    if (!siglaSeleccionada) {
+      toast.error('No se encontró información de la sigla seleccionada');
+      return;
+    }
+
+    //  Construir el input para enviar al backend
+    const input = {
+      id_orden_trabajo: idOrden,
+      id_mantencion_preventiva: fila.id_falla_principal, // usa el ID de la sigla
+      id_personal_mantencion_preventiva: 149,
+      personal_reporto: 'GERSON MARTINEZ',
+      id_perfil_personal_mantencion_preventiva: 1,
+      id_estado_mantencion: 1,
+      ppu: data.basic.patente ?? '',
+      siglas_mantenimiento: siglaSeleccionada.siglas_preventivo ?? '',
+    };
+
+    try {
+      setIsSubmitting(true);
+      const result = await createMantencionPreventiva(input);
+
+      if (result?.success) {
+        toast.success('Falla preventiva añadida correctamente ✅');
+        await queryClient.invalidateQueries({
+          queryKey: ['orden-detalle', idOrden],
+        });
+
+        //  Quita el modo edición y limpia la fila temporal
+        setFilasPreventivas((prev) =>
+          prev.map((f) =>
+            f.tempId === fila.tempId ? { ...f, isNew: false } : f,
+          ),
+        );
+        setEditando(null);
+      } else {
+        toast.error(
+          result?.message || 'No se pudo registrar la falla preventiva',
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error de conexión al registrar la falla preventiva');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Confirmar update o create real
@@ -348,49 +511,164 @@ export default function OTDetalle({ idOrden }: Props) {
           </div>
         </CardContent>
       </Card>
-
-      {/*  SOLO SI ES PREVENTIVA */}
-      {data.basic.tipoOrden === 'Preventiva' && preventivaData && (
+      {/* --- BLOQUE MANTENCIÓN PREVENTIVA  --- */}
+      {data?.basic?.tipoOrden === 'Preventiva' && preventivaData && (
         <Card>
           <CardHeader>
             <CardTitle>Mantención Preventiva</CardTitle>
           </CardHeader>
-          <CardContent className='grid grid-cols-2 gap-3'>
-            <div>
-              <label className='text-sm font-medium text-slate-600'>
-                Marca del Bus
-              </label>
-              <Input
-                value={preventivaData.marcaBus}
-                disabled
-                className='bg-slate-50 text-slate-700'
-              />
+
+          <CardContent className='space-y-4'>
+            {/* Datos básicos */}
+            <div className='grid grid-cols-2 gap-3'>
+              <div>
+                <label className='text-sm font-medium text-slate-600'>
+                  Marca del Bus
+                </label>
+                <Input
+                  value={preventivaData.marcaBus}
+                  disabled
+                  className='bg-slate-50 text-slate-700'
+                />
+              </div>
+              <div>
+                <label className='text-sm font-medium text-slate-600'>
+                  Código Flota
+                </label>
+                <Input
+                  value={codigoFlota ?? ''}
+                  disabled
+                  className='bg-slate-50 text-slate-700'
+                />
+              </div>
             </div>
-            <div>
-              <label className='text-sm font-medium text-slate-600'>
-                Próxima Sigla (Selector)
-              </label>
-              <Select>
-                <SelectTrigger className='w-[220px]'>
-                  <SelectValue placeholder='Seleccione sigla próxima' />
-                </SelectTrigger>
-                <SelectContent>
-                  {siglas.length > 0 ? (
-                    siglas.map((s) => (
-                      <SelectItem
-                        key={s.id_man_prev}
-                        value={String(s.id_man_prev)}
-                      >
-                        {s.siglas_preventivo}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value='no-data'>
-                      Sin datos disponibles
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+
+            {filasPreventivas.map((fila) => {
+              const sigla = siglas.find(
+                (s) => s.id_man_prev === fila.id_falla_principal,
+              );
+              const isEditing = editando === fila.tempId;
+
+              return (
+                <div
+                  key={fila.tempId}
+                  className={`flex items-center gap-3 rounded-md border p-3 ${
+                    fila.isNew
+                      ? 'border-dashed border-fuchsia-400 bg-fuchsia-50/40'
+                      : 'border-slate-200 bg-fuchsia-50/40'
+                  }`}
+                >
+                  <div className='flex w-[240px] flex-col'>
+                    <label className='text-sm font-semibold text-slate-600'>
+                      Sigla Mantenimiento
+                    </label>
+
+                    {fila.isNew ? (
+                      <>
+                        <Select
+                          open={siglaOpen}
+                          onOpenChange={setSiglaOpen}
+                          value={fila.id_falla_principal?.toString() || ''}
+                          onValueChange={(val) =>
+                            setFilasPreventivas((prev) =>
+                              prev.map((f) =>
+                                f.tempId === fila.tempId
+                                  ? { ...f, id_falla_principal: Number(val) }
+                                  : f,
+                              ),
+                            )
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder='Seleccione sigla preventiva'>
+                              {(() => {
+                                const actual = siglas.find(
+                                  (s) =>
+                                    s.id_man_prev === fila.id_falla_principal,
+                                );
+                                return actual
+                                  ? actual.siglas_preventivo
+                                  : 'Seleccione sigla preventiva';
+                              })()}
+                            </SelectValue>
+                          </SelectTrigger>
+
+                          {/* Selector virtualizado con buscador */}
+                          <VirtualizedSearchSelect
+                            items={siglas}
+                            getKey={(s) => s.id_man_prev}
+                            getLabel={(s) => s.siglas_preventivo}
+                            getValue={(s) => s.id_man_prev}
+                            open={siglaOpen}
+                          />
+                        </Select>
+
+                        {/* Mostrar ID seleccionado temporalmente */}
+                        {fila.id_falla_principal && (
+                          <p className='mt-1 text-xs text-slate-500'>
+                            ID seleccionado: {fila.id_falla_principal}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Input
+                          value={sigla?.siglas_preventivo ?? ''}
+                          disabled
+                          className='bg-white text-slate-700'
+                        />
+                        <p className='mt-1 text-xs font-medium text-fuchsia-700'>
+                          ID Relación: {sigla?.id_rel_man_prev ?? '—'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Acciones */}
+                  <div className='ml-auto flex gap-2'>
+                    {fila.isNew ? (
+                      <>
+                        <Button
+                          size='icon'
+                          variant='outline'
+                          onClick={() => handleGuardarFilaPreventiva(fila)}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className='h-4 w-4 animate-spin text-fuchsia-900' />
+                          ) : (
+                            <Save className='h-4 w-4 text-fuchsia-950' />
+                          )}
+                        </Button>
+                        <Button
+                          size='icon'
+                          variant='ghost'
+                          onClick={() =>
+                            setFilasPreventivas((prev) =>
+                              prev.filter((f) => f.tempId !== fila.tempId),
+                            )
+                          }
+                        >
+                          <X className='h-4 w-4 text-slate-600' />
+                        </Button>
+                      </>
+                    ) : (
+                      <Check className='h-5 w-5 text-green-600' />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/*  Y al final el botón para añadir una nueva fila */}
+            <div className='mt-3'>
+              <Button
+                className='bg-fuchsia-950 text-white hover:bg-fuchsia-900'
+                onClick={handleAgregarFilaPreventiva}
+              >
+                <Plus className='mr-2 h-4 w-4' />
+                Añadir nueva falla preventiva
+              </Button>
             </div>
           </CardContent>
         </Card>

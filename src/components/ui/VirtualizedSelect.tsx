@@ -51,6 +51,7 @@ export function VirtualizedSearchSelect<T>({
           placeholder='Buscar...'
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
           className='h-8'
         />
       </div>

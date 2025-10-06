@@ -33,13 +33,13 @@ export default function FallaDeleteDialog({
 
   const [preview, setPreview] = useState<DeleteFallaResponse | null>(null);
 
-  // 🔁 Mutación de eliminación
+  //  Mutación de eliminación
   const { mutateAsync: deleteFallaAsync, isPending } = useMutation({
     mutationKey: ['delete-falla'],
     mutationFn: (id: number) => deleteFalla(id),
   });
 
-  // 🔍 Al abrir el modal, obtener vista previa (staff / insumos asociados)
+  //  Al abrir el modal, obtener vista previa (staff / insumos asociados)
   useEffect(() => {
     const fetchPreview = async () => {
       if (open && idRelacionFalla) {
@@ -50,7 +50,7 @@ export default function FallaDeleteDialog({
     fetchPreview();
   }, [open, idRelacionFalla]);
 
-  // 🗑️ Confirmar eliminación
+  //  Confirmar eliminación
   const handleDelete = async () => {
     if (!idRelacionFalla) return;
 
@@ -82,7 +82,7 @@ export default function FallaDeleteDialog({
             </span>
           </p>
 
-          {/* 🔧 Resumen de elementos asociados */}
+          {/*  Resumen de elementos asociados */}
           <div className='space-y-2 rounded-md bg-slate-100 p-3 text-sm text-slate-700'>
             <p className='flex items-center gap-2'>
               <Wrench className='h-4 w-4 text-fuchsia-950' />

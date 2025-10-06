@@ -13,6 +13,11 @@ import type {
   DeleteFallaResponse,
   MantencionPreventiva,
   SiglaPreventiva,
+  MantencionPreventivaCrear,
+  MantencionPreventivaResponse,
+  SiglaPreventivaFlota,
+  GetSiglasPreventivasFlotaInput,
+  DeleteMantencionPreventivaResponse,
 } from '../../../types/OT/OTMenu';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
@@ -402,6 +407,130 @@ export const useOTMenu = () => {
     }
   };
 
+  // Crea una falla de mantencion preventiva sin asignar mecanico
+  const createMantencionPreventiva = async (
+    input: MantencionPreventivaCrear,
+  ): Promise<MantencionPreventivaResponse | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/ot_preventivo/POST`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(input),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error al registrar mantención preventiva: ${errorText}`);
+        return null;
+      }
+
+      const result: MantencionPreventivaResponse = await response.json();
+
+      if (result.success) {
+        toast.success(
+          result.message || 'Mantención preventiva registrada correctamente',
+        );
+      } else {
+        toast.error(
+          result.message || 'Error al registrar mantención preventiva',
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error en createMantencionPreventiva:', error);
+      toast.error('Error de conexión al registrar mantención preventiva');
+      return null;
+    }
+  };
+
+  const getSiglasPreventivasByFlotaYOrden = async (
+    input: GetSiglasPreventivasFlotaInput,
+  ): Promise<SiglaPreventivaFlota[]> => {
+    try {
+      const { codigo_flota, id_orden_trabajo } = input;
+
+      if (!codigo_flota || !id_orden_trabajo) {
+        toast.error('Faltan parámetros: código de flota o id de OT');
+        return [];
+      }
+
+      const params = new URLSearchParams({
+        codigo_flota: String(codigo_flota),
+        id_orden_trabajo: String(id_orden_trabajo),
+      });
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/ot_preventivo/siglas-preventivas?${params.toString()}`,
+      );
+
+      if (!response.ok) {
+        toast.error('Error al obtener siglas preventivas de flota');
+        return [];
+      }
+
+      const data = await response.json();
+
+      if (!data?.success) {
+        toast.error(data?.message || 'No se encontraron resultados');
+        return [];
+      }
+
+      return data.data ?? [];
+    } catch (error) {
+      console.error('Error en getSiglasPreventivasByFlotaYOrden:', error);
+      toast.error('Error de conexión al obtener siglas preventivas');
+      return [];
+    }
+  };
+
+  const deleteMantencionPreventiva = async (
+    id_rel_man_prev: number,
+  ): Promise<DeleteMantencionPreventivaResponse | null> => {
+    try {
+      if (!id_rel_man_prev) {
+        toast.error('Debe proporcionar el ID de la mantención preventiva');
+        return null;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/mantencion-preventiva/${id_rel_man_prev}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error al eliminar mantención preventiva: ${errorText}`);
+        return null;
+      }
+
+      const result: DeleteMantencionPreventivaResponse = await response.json();
+
+      if (result.success) {
+        toast.success(
+          result.message || 'Mantención preventiva eliminada correctamente ✅',
+        );
+      } else {
+        toast.error(
+          result.message || 'No se encontró la mantención preventiva',
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error en deleteMantencionPreventiva:', error);
+      toast.error('Error de conexión al eliminar mantención preventiva');
+      return null;
+    }
+  };
+
   return {
     getAllFiltros,
     getFiltroByTipo,
@@ -417,5 +546,8 @@ export const useOTMenu = () => {
     getFallaPreview,
     getMantencionPreventiva,
     getSiglasPreventivasByFlota,
+    createMantencionPreventiva,
+    getSiglasPreventivasByFlotaYOrden,
+    deleteMantencionPreventiva,
   };
 };

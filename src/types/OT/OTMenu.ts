@@ -276,3 +276,57 @@ export interface SiglaPreventiva {
   id_man_prev: number;
   siglas_preventivo: string;
 }
+
+// crear una falla de mantencion preventiva sin asignar mecanico
+
+export interface MantencionPreventivaCrear {
+  id_orden_trabajo: number;
+  id_mantencion_preventiva: number;
+  id_personal_mantencion_preventiva: number;
+  personal_reporto: string;
+  id_perfil_personal_mantencion_preventiva: number;
+  id_estado_mantencion: number; // 1 = En Ejeccion, 2 = Rechazada, 3 = Ejecutada, 4 = Aprobada y 5 = Tecnico Eliminado
+  ppu: string;
+  siglas_mantenimiento: string;
+}
+
+export interface MantencionPreventivaResponse {
+  success: boolean;
+  message: string;
+}
+
+// Orden de trabajo preventivo - Mostrar el dato que ya esta registrado en el selector
+
+export interface SiglaPreventivaFlota {
+  id_man_prev: number;
+  siglas_preventivo: string;
+  id_rel_man_prev: number | null;
+  id_orden_trabajo: number | null;
+  siglas_mantenimiento: string | null;
+  id_mantencion_preventiva: number | null;
+  ya_registrada: number; // 1 si ya está en RELACION_MANTENCION_PREVENTIVA, 0 si no
+}
+
+export interface GetSiglasPreventivasFlotaInput {
+  codigo_flota: number;
+  id_orden_trabajo: number;
+}
+
+// ELiminar una falla preventiva
+
+export interface DeleteMantencionPreventivaInput {
+  id_rel_man_prev: number;
+}
+
+//  Respuesta del procedimiento sp_delManPrev
+export interface DeleteMantencionPreventivaResponse {
+  success: boolean;
+  message: string;
+}
+
+export type FilaPreventiva = {
+  tempId: number; // ID temporal en frontend
+  id_rel_man_prev?: number | null; // ID real del registro (en DB)
+  id_falla_principal?: number | null; // Sigla seleccionada
+  isNew?: boolean; // Modo edición
+};

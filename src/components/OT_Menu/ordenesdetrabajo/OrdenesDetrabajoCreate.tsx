@@ -25,6 +25,7 @@ import type { CreateOrdenTrabajoInput } from '@/types/OT/OTMenu';
 import { toast } from 'sonner';
 import { CheckCircle2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { FilaPreventiva } from '@/types/OT/OTMenu';
 
 import { z } from 'zod';
 
@@ -101,6 +102,22 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
   const [filas, setFilas] = useState<FilaSistemaSubsistema[]>([
     { id: Date.now() },
   ]);
+
+  // estados para eliminar mantención preventiva
+  const [openDeletePreventiva, setOpenDeletePreventiva] = useState(false);
+  const [idPreventivaSeleccionada, setIdPreventivaSeleccionada] = useState<
+    number | null
+  >(null);
+
+  // Estado para filas preventivas (siglas seleccionadas)
+  const [filasPreventivas, setFilasPreventivas] = useState<FilaPreventiva[]>(
+    [],
+  );
+
+  // Estado de edición (fila activa)
+  const [editandoPreventiva, setEditandoPreventiva] = useState<number | null>(
+    null,
+  );
 
   // cargar opciones iniciales
   useEffect(() => {
@@ -218,6 +235,16 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
     }
   };
 
+  const handleEliminarFilaPreventiva = (fila: FilaPreventiva) => {
+    if (!fila.id_rel_man_prev) {
+      toast.info('Registro sin ID, no se puede eliminar aún.');
+      return;
+    }
+
+    setIdPreventivaSeleccionada(fila.id_rel_man_prev);
+    setOpenDeletePreventiva(true);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className='max-h-[90vh] max-w-3xl overflow-y-auto'>
@@ -314,7 +341,7 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
           </div>
 
           {/* Tabla sistema/subsistema */}
-          {/* Mostrar tabla de sistema/subsistema solo si NO es preventiva */}
+
           {tipoOTSeleccionado !== 2 && (
             <div>
               <div className='grid grid-cols-12 rounded-t bg-fuchsia-950 p-2 text-sm font-bold text-white'>
