@@ -7,6 +7,12 @@ import type {
   CreateOrdenTrabajoInput,
   CreateOrdenTrabajoResponse,
   DeleteOrdenTrabajoResponse,
+  OrdenTrabajoDetalle,
+  UpdateFallaInput,
+  UpdateFallaResponse,
+  DeleteFallaResponse,
+  MantencionPreventiva,
+  SiglaPreventiva,
 } from '../../../types/OT/OTMenu';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
@@ -201,6 +207,63 @@ export const useOTMenu = () => {
     }
   };
 
+  // ESTO SERVIRA PARA EL APARTADO DE SISTEMAS //
+
+  const getOrdenDetalle = async (
+    idOrden: number,
+  ): Promise<OrdenTrabajoDetalle | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/ordenes/${idOrden}/details`,
+      );
+
+      if (!response.ok) {
+        toast.error(`Error al obtener detalle de la OT #${idOrden}`);
+        return null;
+      }
+
+      const data: OrdenTrabajoDetalle = await response.json();
+      return data ?? null;
+    } catch {
+      toast.error(`Error de conexión al obtener detalle de la OT #${idOrden}`);
+      return null;
+    }
+  };
+
+  const updateFalla = async (
+    input: UpdateFallaInput,
+  ): Promise<UpdateFallaResponse | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/falla`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error al actualizar falla: ${errorText}`);
+        return null;
+      }
+
+      const result: UpdateFallaResponse = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+
+      return result;
+    } catch (err) {
+      toast.error('Error de conexión al actualizar falla');
+      return null;
+    }
+  };
+
   const deleteOrdenTrabajo = async (
     idOrden: number,
   ): Promise<DeleteOrdenTrabajoResponse | null> => {
@@ -233,6 +296,112 @@ export const useOTMenu = () => {
     }
   };
 
+  const deleteFalla = async (
+    idRelacionFalla: number,
+  ): Promise<DeleteFallaResponse | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/falla/${idRelacionFalla}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Error al eliminar falla: ${errorText}`);
+        return null;
+      }
+
+      const result: DeleteFallaResponse = await response.json();
+
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+
+      return result;
+    } catch (err) {
+      toast.error('Error de conexión al eliminar falla');
+      return null;
+    }
+  };
+
+  const getFallaPreview = async (
+    idRelacionFalla: number,
+  ): Promise<DeleteFallaResponse | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/falla/${idRelacionFalla}/preview`,
+      );
+
+      if (!response.ok) return null;
+
+      const result: DeleteFallaResponse = await response.json();
+      return result;
+    } catch {
+      return null;
+    }
+  };
+
+  const getMantencionPreventiva = async (
+    numeroBus?: number,
+    placaPatente?: string,
+  ): Promise<MantencionPreventiva[] | []> => {
+    try {
+      if (!numeroBus && !placaPatente) {
+        toast.error('Debe ingresar número de bus o placa patente');
+        return [];
+      }
+
+      const params = new URLSearchParams();
+      if (numeroBus) params.append('numeroBus', String(numeroBus));
+      if (placaPatente) params.append('placaPatente', placaPatente);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/mantencion-preventiva?${params.toString()}`,
+      );
+
+      if (!response.ok) {
+        toast.error('Error al obtener datos de mantención preventiva');
+        return [];
+      }
+
+      const data = await response.json();
+      return data?.data ?? [];
+    } catch {
+      toast.error('Error de conexión al obtener mantención preventiva');
+      return [];
+    }
+  };
+
+  const getSiglasPreventivasByFlota = async (
+    codigoFlota: number,
+  ): Promise<SiglaPreventiva[]> => {
+    try {
+      if (!codigoFlota) {
+        toast.error('Debe proporcionar un código de flota');
+        return [];
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/ordenDeTrabajo/siglas-preventivas?codigoFlota=${codigoFlota}`,
+      );
+
+      if (!response.ok) {
+        toast.error('Error al obtener siglas preventivas');
+        return [];
+      }
+
+      const result = await response.json();
+      return result?.data ?? [];
+    } catch {
+      toast.error('Error de conexión al obtener siglas preventivas');
+      return [];
+    }
+  };
+
   return {
     getAllFiltros,
     getFiltroByTipo,
@@ -242,5 +411,11 @@ export const useOTMenu = () => {
     getAllSubSistemas,
     createOrdenTrabajo,
     deleteOrdenTrabajo,
+    getOrdenDetalle,
+    updateFalla,
+    deleteFalla,
+    getFallaPreview,
+    getMantencionPreventiva,
+    getSiglasPreventivasByFlota,
   };
 };

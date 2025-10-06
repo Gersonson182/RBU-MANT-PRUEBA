@@ -139,32 +139,47 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
 
   // DEBUG
   const handleGuardar = async () => {
-    //  Validación de legacuyUser
     if (!legacyUser?.idpersonalcontrolgestion) {
       toast.error('Error: No se detectó usuario logeado');
       return;
     }
-    const input: CreateOrdenTrabajoInput = {
+
+    const tipo = Number(tipoOTSeleccionado);
+
+    // El tipo inferido no incluye fallas si es preventiva
+    const inputBase = {
       id_personal_ingreso: Number(legacyUser?.idpersonalcontrolgestion) ?? 0,
-      id_tipo_orden: tipoOTSeleccionado ?? 0,
+      id_tipo_orden: tipo,
       codigo_flota: selectedBus ?? 0,
       detalle_ingreso: detalle,
       codigo_taller: tallerSeleccionado ?? 0,
-      servicio: tipoOTSeleccionado === 6 ? null : null,
-      fallas: filas
-        .filter((fila) => fila.sistema) // evitamos undefined
-        .map((fila) => ({
-          id_falla_principal: fila.sistema as number,
-          id_falla_secundaria: fila.subsistema ?? null,
-          id_personal_falla_principal: legacyUser?.codigoUsuario ?? null,
-          id_perfil_principal: legacyUser?.idperfilusuario ?? null,
-        })),
+      servicio: null,
     };
 
-    // DEBUG: ver el payload que se enviará
-    console.log('Payload OT a enviar:', input);
+    // Solo añadimos fallas si aplica
+    const input =
+      tipo === 2
+        ? inputBase
+        : {
+            ...inputBase,
+            fallas: filas
+              .filter((fila) => fila.sistema)
+              .map((fila) => ({
+                id_falla_principal: fila.sistema as number,
+                id_falla_secundaria: fila.subsistema ?? null,
+                id_personal_falla_principal: legacyUser?.codigoUsuario ?? null,
+                id_perfil_principal: legacyUser?.idperfilusuario ?? null,
+              })),
+          };
 
-    const parsed = createOrdenTrabajoSchema.safeParse(input);
+    // Validación condicional
+    let parsed;
+    if (tipo === 2) {
+      const schemaPreventiva = createOrdenTrabajoSchema.omit({ fallas: true });
+      parsed = schemaPreventiva.safeParse(input);
+    } else {
+      parsed = createOrdenTrabajoSchema.safeParse(input);
+    }
 
     if (!parsed.success) {
       const mensajes = parsed.error.issues.map((e) => e.message).join(', ');
@@ -172,19 +187,21 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
       return;
     }
 
-    // DEBUG: ver los datos ya validados por Zod
-    console.log('Payload validado:', parsed.data);
-
-    const result = await createOrdenTrabajo(parsed.data);
-
-    // DEBUG: respuesta desde el backend
+    // Cast controlado al tipo original (solo aquí)
+    const result = await createOrdenTrabajo(
+      parsed.data as CreateOrdenTrabajoInput,
+    );
     console.log('Respuesta backend:', result);
 
     if (result) {
       toast.custom(
         (t: any) => (
           <div
-            className={`mx-auto flex max-w-md items-center gap-3 rounded-lg bg-green-600 p-4 text-white shadow-lg transition-all ${t.visible ? 'animate-in fade-in slide-in-from-top-10' : 'animate-out fade-out slide-out-to-top-10'} `}
+            className={`mx-auto flex max-w-md items-center gap-3 rounded-lg bg-green-600 p-4 text-white shadow-lg transition-all ${
+              t.visible
+                ? 'animate-in fade-in slide-in-from-top-10'
+                : 'animate-out fade-out slide-out-to-top-10'
+            } `}
           >
             <CheckCircle2 className='h-6 w-6 text-white' />
             <p className='font-semibold'>
@@ -193,10 +210,7 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
             </p>
           </div>
         ),
-        {
-          duration: 5000,
-          position: 'top-center', // bien centrado horizontal y con margen top
-        },
+        { duration: 5000, position: 'top-center' },
       );
 
       queryClient.invalidateQueries({ queryKey: ['ordenes-trabajo'] });
@@ -241,6 +255,12 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
                 open={busOpen}
               />
             </Select>
+            {selectedBus && (
+              <p className='mt-1 text-sm text-gray-600'>
+                Código de flota:{' '}
+                <span className='font-semibold'>{selectedBus}</span>
+              </p>
+            )}
           </div>
 
           {/* Taller */}
@@ -294,94 +314,97 @@ export default function MantencionCreateForm({ open, setOpen }: Props) {
           </div>
 
           {/* Tabla sistema/subsistema */}
-          <div>
-            <div className='grid grid-cols-12 rounded-t bg-fuchsia-950 p-2 text-sm font-bold text-white'>
-              <div className='col-span-5'>Sistema</div>
-              <div className='col-span-5'>Sub sistema</div>
-              <div className='col-span-2 text-center'>Eliminar</div>
-            </div>
-
-            {filas.map((fila) => (
-              <div
-                key={fila.id}
-                className='grid grid-cols-12 items-center gap-2 border p-2'
-              >
-                {/* Sistema */}
-                <div className='col-span-5'>
-                  <Select
-                    value={fila.sistema?.toString()}
-                    onValueChange={(val) =>
-                      handleSistemaChange(fila.id, Number(val))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Seleccione' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sistemas.map((s) => (
-                        <SelectItem
-                          key={s.id_falla_principal}
-                          value={String(s.id_falla_principal)}
-                        >
-                          {s.detalle_falla_principal}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Subsistema */}
-                <div className='col-span-5'>
-                  <Select
-                    value={fila.subsistema?.toString()}
-                    onValueChange={(val) =>
-                      handleSubsistemaChange(fila.id, Number(val))
-                    }
-                    disabled={!fila.sistema}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder='Seleccione' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(fila.sistema
-                        ? subsistemasPorSistema[fila.sistema] || []
-                        : []
-                      ).map((sub) => (
-                        <SelectItem
-                          key={sub.id_falla_secundaria}
-                          value={String(sub.id_falla_secundaria)}
-                        >
-                          {sub.detalle_falla_secundaria}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Eliminar */}
-                <div className='col-span-2 flex justify-center'>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    onClick={() => handleEliminarFila(fila.id)}
-                  >
-                    <Trash2 className='h-5 w-5 text-red-600' />
-                  </Button>
-                </div>
+          {/* Mostrar tabla de sistema/subsistema solo si NO es preventiva */}
+          {tipoOTSeleccionado !== 2 && (
+            <div>
+              <div className='grid grid-cols-12 rounded-t bg-fuchsia-950 p-2 text-sm font-bold text-white'>
+                <div className='col-span-5'>Sistema</div>
+                <div className='col-span-5'>Sub sistema</div>
+                <div className='col-span-2 text-center'>Eliminar</div>
               </div>
-            ))}
 
-            {/* Botón agregar */}
-            <div className='mt-2'>
-              <Button
-                className='bg-fuchsia-950 text-white hover:bg-fuchsia-900'
-                onClick={handleAgregarFila}
-              >
-                <Plus className='mr-2 h-4 w-4' />
-                Agregar subsistema
-              </Button>
+              {filas.map((fila) => (
+                <div
+                  key={fila.id}
+                  className='grid grid-cols-12 items-center gap-2 border p-2'
+                >
+                  {/* Sistema */}
+                  <div className='col-span-5'>
+                    <Select
+                      value={fila.sistema?.toString()}
+                      onValueChange={(val) =>
+                        handleSistemaChange(fila.id, Number(val))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder='Seleccione' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sistemas.map((s) => (
+                          <SelectItem
+                            key={s.id_falla_principal}
+                            value={String(s.id_falla_principal)}
+                          >
+                            {s.detalle_falla_principal}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Subsistema */}
+                  <div className='col-span-5'>
+                    <Select
+                      value={fila.subsistema?.toString()}
+                      onValueChange={(val) =>
+                        handleSubsistemaChange(fila.id, Number(val))
+                      }
+                      disabled={!fila.sistema}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder='Seleccione' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(fila.sistema
+                          ? subsistemasPorSistema[fila.sistema] || []
+                          : []
+                        ).map((sub) => (
+                          <SelectItem
+                            key={sub.id_falla_secundaria}
+                            value={String(sub.id_falla_secundaria)}
+                          >
+                            {sub.detalle_falla_secundaria}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Eliminar */}
+                  <div className='col-span-2 flex justify-center'>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      onClick={() => handleEliminarFila(fila.id)}
+                    >
+                      <Trash2 className='h-5 w-5 text-red-600' />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Botón agregar */}
+              <div className='mt-2'>
+                <Button
+                  className='bg-fuchsia-950 text-white hover:bg-fuchsia-900'
+                  onClick={handleAgregarFila}
+                >
+                  <Plus className='mr-2 h-4 w-4' />
+                  Agregar subsistema
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <DialogFooter>
             <Button onClick={handleGuardar}>Guardar</Button>

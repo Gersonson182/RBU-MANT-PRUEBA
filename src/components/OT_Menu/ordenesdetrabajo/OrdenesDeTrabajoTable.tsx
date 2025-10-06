@@ -57,6 +57,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { DataTablePagination } from '../../DataTablePagination';
 import { cn } from '@/lib/utils';
 import OTDeleteDialog from './OrdenesDeTrabajoDelete';
+import OTDetalle from './OrdenesDeTrabajoSistemaDetail';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import {
   Trash2,
   Settings,
@@ -69,7 +71,7 @@ import {
 import { VirtualizedSearchSelect } from '@/components/ui/VirtualizedSelect';
 
 // Icons
-import { ArrowUpDown, CalendarIcon, Search, Dock } from 'lucide-react';
+import { CalendarIcon, Search, Dock } from 'lucide-react';
 
 import { estadoColors } from './helpers/statusColors';
 
@@ -109,6 +111,11 @@ export default function OTMenuTable() {
 
   const [tempSearchOT, setTempSearchOT] = useState('');
   const [searchOT, setSearchOT] = useState('');
+
+  // SISTEMAS //
+  const [selectedDetalleId, setSelectedDetalleId] = useState<number | null>(
+    null,
+  );
 
   // Query tabla
   const { data, isLoading, refetch } = useQuery({
@@ -172,6 +179,7 @@ export default function OTMenuTable() {
     setSelectedBus(undefined);
     setSelectedManager(undefined);
     setSearchOT('');
+    setTempSearchOT('');
     setFechaIngreso(undefined);
     setFechaSalida(undefined);
 
@@ -279,9 +287,11 @@ export default function OTMenuTable() {
                 variant='outline'
                 size='sm'
                 className='border-fuchsia-300 text-fuchsia-700'
+                onClick={() => setSelectedDetalleId(Number(idOrden))}
               >
                 <Settings className='mr-1 h-4 w-4' /> Sistema
               </Button>
+
               <Button
                 variant='outline'
                 size='sm'
@@ -303,7 +313,14 @@ export default function OTMenuTable() {
               >
                 <FileText className='mr-1 h-4 w-4' /> Ver Detalles
               </Button>
-              <Button variant='destructive' size='sm'>
+              <Button
+                variant='destructive'
+                size='sm'
+                onClick={() => {
+                  setSelectedId(Number(idOrden));
+                  setIsDeleteOpen(true);
+                }}
+              >
                 <Trash2 className='mr-1 h-4 w-4' /> Eliminar
               </Button>
             </div>
@@ -323,11 +340,12 @@ export default function OTMenuTable() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem
-                    onClick={() => console.log('Sistema', idOrden)}
+                    onClick={() => setSelectedDetalleId(Number(idOrden))}
                   >
                     <Settings className='mr-2 h-4 w-4 text-fuchsia-700' />{' '}
                     Sistema
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
                     onClick={() => console.log('Personal', idOrden)}
                   >
@@ -346,7 +364,10 @@ export default function OTMenuTable() {
                     Detalles
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => console.log('Eliminar', idOrden)}
+                    onClick={() => {
+                      setSelectedId(Number(idOrden));
+                      setIsDeleteOpen(true);
+                    }}
                     className='text-red-600'
                   >
                     <Trash2 className='mr-2 h-4 w-4 text-red-600' /> Eliminar
@@ -712,6 +733,17 @@ export default function OTMenuTable() {
           setOpen={setIsDeleteOpen}
           idOrden={selectedId}
         />
+      )}
+
+      {selectedDetalleId && (
+        <Dialog
+          open={!!selectedDetalleId}
+          onOpenChange={() => setSelectedDetalleId(null)}
+        >
+          <DialogContent className='max-h-[90vh] max-w-5xl overflow-y-auto'>
+            <OTDetalle idOrden={selectedDetalleId} />
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
