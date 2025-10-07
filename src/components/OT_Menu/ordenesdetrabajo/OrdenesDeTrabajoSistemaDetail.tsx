@@ -223,6 +223,9 @@ export default function OTDetalle({ idOrden }: Props) {
   // --- HANDLERS --- //
   const handleChangePrincipal = async (idPrincipal: number, tempId: number) => {
     const subs = await getSubSistemas(idPrincipal);
+    const principal = sistemasPrincipales?.find(
+      (p) => p.id_falla_principal === idPrincipal,
+    );
     setSubSistemasMap((prev) => ({ ...prev, [idPrincipal]: subs }));
     setFilas((prev) =>
       prev.map((f) =>
@@ -230,7 +233,9 @@ export default function OTDetalle({ idOrden }: Props) {
           ? {
               ...f,
               id_falla_principal: idPrincipal,
+              detalleFallaPrincipal: principal?.detalle_falla_principal ?? '',
               id_falla_secundaria: undefined,
+              detalleFallaSecundaria: '',
             }
           : f,
       ),
@@ -238,9 +243,25 @@ export default function OTDetalle({ idOrden }: Props) {
   };
 
   const handleChangeSecundario = (idSecundario: number, tempId: number) => {
+    const filaActual = filas.find((f) => f.tempId === tempId);
+    const secundarios =
+      filaActual?.id_falla_principal &&
+      subSistemasMap[filaActual.id_falla_principal]
+        ? subSistemasMap[filaActual.id_falla_principal]
+        : [];
+    const secundario = secundarios.find(
+      (s) => s.id_falla_secundaria === idSecundario,
+    );
     setFilas((prev) =>
       prev.map((f) =>
-        f.tempId === tempId ? { ...f, id_falla_secundaria: idSecundario } : f,
+        f.tempId === tempId
+          ? {
+              ...f,
+              id_falla_secundaria: idSecundario,
+              detalleFallaSecundaria:
+                secundario?.detalle_falla_secundaria ?? '',
+            }
+          : f,
       ),
     );
   };
@@ -276,17 +297,62 @@ export default function OTDetalle({ idOrden }: Props) {
     const original = filasOriginales.find(
       (f) => f.idRelacionFalla === fila.idRelacionFalla,
     );
-
     const cambios: string[] = [];
-    if (original?.id_falla_principal !== fila.id_falla_principal) {
-      cambios.push(
-        `Falla principal: ${original?.detalleFallaPrincipal} → ${fila.id_falla_principal}`,
+
+    // --- Buscar nombre principal ---
+    let principalSeleccionado =
+      sistemasPrincipales?.find(
+        (p) => Number(p.id_falla_principal) === Number(fila.id_falla_principal),
+      )?.detalle_falla_principal ??
+      fila.detalleFallaPrincipal ??
+      '—';
+
+    // --- Buscar nombre secundario ---
+    let secundariaSeleccionada = '—';
+
+    // Si tenemos el mapa cargado, usamos eso
+    if (
+      fila.id_falla_principal &&
+      subSistemasMap[fila.id_falla_principal]?.length
+    ) {
+      const match = subSistemasMap[fila.id_falla_principal].find(
+        (s) =>
+          Number(s.id_falla_secundaria) === Number(fila.id_falla_secundaria),
       );
+      secundariaSeleccionada =
+        match?.detalle_falla_secundaria ?? fila.detalleFallaSecundaria ?? '—';
     }
-    if (original?.id_falla_secundaria !== fila.id_falla_secundaria) {
-      cambios.push(
-        `Falla secundaria: ${original?.detalleFallaSecundaria} → ${fila.id_falla_secundaria}`,
+
+    //  Si no está en el mapa, hacemos búsqueda alternativa global
+    if (secundariaSeleccionada === '—') {
+      const allSubs = Object.values(subSistemasMap).flat();
+      const matchGlobal = allSubs.find(
+        (s) =>
+          Number(s.id_falla_secundaria) === Number(fila.id_falla_secundaria),
       );
+      if (matchGlobal)
+        secundariaSeleccionada = matchGlobal.detalle_falla_secundaria;
+    }
+
+    if (!original) {
+      cambios.push(
+        `Falla principal: ${principalSeleccionado}`,
+        `Falla secundaria: ${secundariaSeleccionada}`,
+      );
+    } else {
+      const principalAnterior = original.detalleFallaPrincipal ?? '—';
+      const secundariaAnterior = original.detalleFallaSecundaria ?? '—';
+
+      if (original.id_falla_principal !== fila.id_falla_principal) {
+        cambios.push(
+          `Falla principal: ${principalAnterior} → ${principalSeleccionado}`,
+        );
+      }
+      if (original.id_falla_secundaria !== fila.id_falla_secundaria) {
+        cambios.push(
+          `Falla secundaria: ${secundariaAnterior} → ${secundariaSeleccionada}`,
+        );
+      }
     }
 
     if (cambios.length === 0) {
